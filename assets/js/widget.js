@@ -1637,7 +1637,8 @@
       return choices.map((choice) => {
         if (choice && typeof choice === "object") {
           const one = choice;
-          return { value: String(one.value ?? ""), label: String(one.label ?? one.value ?? "") };
+          const value = one.value ?? one.key ?? "";
+          return { value: String(value), label: String(one.label ?? value) };
         }
         return { value: String(choice), label: String(choice) };
       }).filter((choice) => choice.value !== "");

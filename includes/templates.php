@@ -958,20 +958,15 @@ function atcf_template_product() {
 					'conditional'  => atcf_template_when( 'field_product_stock', 'is', '0' ),
 				)
 			),
+			// The two drop zones sit beside each other because they are the same
+			// height. Pairing either with a one-line input leaves a column of
+			// dead air under the input, which reads as a layout bug.
 			atcf_template_field(
 				'field_product_photos',
 				__( 'Photos', 'allterrain-fields' ),
 				'gallery',
 				array(
 					'instructions' => __( 'Renders as a row of images on the front end. Drag pictures in from anywhere.', 'allterrain-fields' ),
-				)
-			),
-			atcf_template_field(
-				'field_product_video',
-				__( 'Video', 'allterrain-fields' ),
-				'oembed',
-				array(
-					'instructions' => __( 'A YouTube or Vimeo URL. Visitors get the player, not the link.', 'allterrain-fields' ),
 					'wrapper'      => atcf_template_width( 50 ),
 				)
 			),
@@ -982,6 +977,14 @@ function atcf_template_product() {
 				array(
 					'instructions' => __( 'A PDF, shown as a download link.', 'allterrain-fields' ),
 					'wrapper'      => atcf_template_width( 50 ),
+				)
+			),
+			atcf_template_field(
+				'field_product_video',
+				__( 'Video', 'allterrain-fields' ),
+				'oembed',
+				array(
+					'instructions' => __( 'A YouTube or Vimeo URL. Visitors get the player, not the link.', 'allterrain-fields' ),
 				)
 			),
 			atcf_template_field(
@@ -1000,13 +1003,16 @@ function atcf_template_product() {
 					'instructions' => __( 'The spec sheet itself — it renders as a real table under the content.', 'allterrain-fields' ),
 					'settings'     => array(
 						'header'  => true,
+						// `value`/`label`, the same shape the builder's own
+						// column editor writes — the one dialect both
+						// renderers read without translation.
 						'columns' => array(
 							array(
-								'key'   => 'spec',
+								'value' => 'spec',
 								'label' => __( 'Spec', 'allterrain-fields' ),
 							),
 							array(
-								'key'   => 'value',
+								'value' => 'value',
 								'label' => __( 'Value', 'allterrain-fields' ),
 							),
 						),

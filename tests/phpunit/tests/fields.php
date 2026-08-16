@@ -524,4 +524,66 @@ class ATCF_Test_Fields extends WP_UnitTestCase {
 			'tests/fixtures/field-types.json is out of date. Regenerate it, and give any new type a shape in src/builder/field-preview.ts.'
 		);
 	}
+
+	/**
+	 * The table sanitiser reads every column dialect that exists.
+	 *
+	 * The builder's column editor writes `value`/`label`; hand-written
+	 * registrations write `key`/`label` or plain strings. The sanitiser read
+	 * only `key` — so every builder-made table sanitised against an *empty*
+	 * column list, which blanked every cell on every save. The data was one
+	 * spelling away the whole time.
+	 *
+	 * @covers ::atcf_sanitize_table
+	 */
+	public function test_table_sanitizer_reads_every_column_dialect() {
+		$rows = array(
+			array(
+				'spec'  => 'Weight',
+				'value' => '1.2kg',
+			),
+		);
+
+		$dialects = array(
+			'builder'      => array(
+				array(
+					'value' => 'spec',
+					'label' => 'Spec',
+				),
+				array(
+					'value' => 'value',
+					'label' => 'Value',
+				),
+			),
+			'hand-written' => array(
+				array(
+					'key'   => 'spec',
+					'label' => 'Spec',
+				),
+				array(
+					'key'   => 'value',
+					'label' => 'Value',
+				),
+			),
+			'plain'        => array( 'spec', 'value' ),
+		);
+
+		foreach ( $dialects as $name => $columns ) {
+			$clean = atcf_sanitize_table(
+				$rows,
+				array( 'settings' => array( 'columns' => $columns ) )
+			);
+
+			$this->assertSame(
+				array(
+					array(
+						'spec'  => 'Weight',
+						'value' => '1.2kg',
+					),
+				),
+				$clean,
+				"The {$name} column dialect lost its cells."
+			);
+		}
+	}
 }
