@@ -324,7 +324,7 @@ class ATCF_Test_Abilities extends WP_UnitTestCase {
 
 		$templates = wp_get_ability( 'allterrain-fields/list-templates' )->execute( array() );
 
-		$this->assertSame( array( 'recipe', 'property', 'event' ), wp_list_pluck( $templates, 'slug' ) );
+		$this->assertSame( array( 'recipe', 'property', 'event', 'product' ), wp_list_pluck( $templates, 'slug' ) );
 		$this->assertNotEmpty( $templates[0]['teaches'] );
 	}
 

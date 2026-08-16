@@ -79,9 +79,15 @@
 	inline-size: 100%;
 }
 
+.atcf-display__table th,
 .atcf-display__table td {
 	padding: 0.35em 0.75em 0.35em 0;
 	border-block-end: 1px solid color-mix( in srgb, currentColor 15%, transparent );
+	text-align: start;
+}
+
+.atcf-display__table th {
+	border-block-end-width: 2px;
 }
 
 @media ( max-width: 600px ) {

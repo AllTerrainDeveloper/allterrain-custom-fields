@@ -404,7 +404,7 @@ function atcf_display_value_html( $field, $value ) {
 			return esc_html( $address );
 
 		case 'table':
-			return atcf_display_table_html( $value );
+			return atcf_display_table_html( $value, $field );
 
 		case 'group':
 			return atcf_display_rows_html( atcf_field_sub_fields( $field ), is_array( $value ) ? $value : array() );
@@ -481,14 +481,39 @@ function atcf_display_rows_html( $subs, $row ) {
 /**
  * A table field's value as a table.
  *
+ * With the header row the field declared, when it declared one — a spec sheet
+ * without its column names is two anonymous columns of trivia.
+ *
  * @since 0.2.0
  *
  * @param mixed $value Raw stored value.
+ * @param array $field Canonical field, for the column labels.
  * @return string The table.
  */
-function atcf_display_table_html( $value ) {
+function atcf_display_table_html( $value, $field = array() ) {
 	if ( ! is_array( $value ) ) {
 		return '';
+	}
+
+	$settings = (array) atcf_arr( $field, 'settings', array() );
+	$head     = '';
+
+	if ( atcf_arr( $settings, 'header', false ) ) {
+		$cells = '';
+
+		foreach ( (array) atcf_arr( $settings, 'columns', array() ) as $column ) {
+			$label = is_array( $column )
+				? (string) atcf_arr( $column, 'label', (string) atcf_arr( $column, 'key', '' ) )
+				: (string) $column;
+
+			if ( '' !== $label ) {
+				$cells .= '<th scope="col">' . esc_html( $label ) . '</th>';
+			}
+		}
+
+		if ( '' !== $cells ) {
+			$head = '<thead><tr>' . $cells . '</tr></thead>';
+		}
 	}
 
 	$rows = '';
@@ -509,7 +534,7 @@ function atcf_display_table_html( $value ) {
 		}
 	}
 
-	return '' === $rows ? '' : '<table class="atcf-display__table"><tbody>' . $rows . '</tbody></table>';
+	return '' === $rows ? '' : '<table class="atcf-display__table">' . $head . '<tbody>' . $rows . '</tbody></table>';
 }
 
 add_action( 'init', 'atcf_display_register_style' );

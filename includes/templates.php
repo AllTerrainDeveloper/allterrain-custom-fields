@@ -2,7 +2,7 @@
 /**
  * Starter templates.
  *
- * Three worked examples, offered where somebody with no field groups lands.
+ * Four worked examples, offered where somebody with no field groups lands.
  *
  * The point is not to save typing. It is that "custom fields" is an abstraction
  * with nothing in it until you have seen one — and a blank canvas beside a
@@ -20,10 +20,16 @@
  *     a location, a gallery, and a relationship to a person.
  *   - **Events** — dates, a capacity that works out the places left, and a
  *     conditional price that disappears when the event is free.
+ *   - **Products** — the display layer. The one group that ships with *Show on
+ *     the front end* already on, so the first thing it teaches is that a spec
+ *     sheet can reach visitors with no template edit at all: a spec table, a
+ *     gallery, a manual, an embedded video, a VAT-inclusive price that works
+ *     itself out, and a buy link a Buttons block can bind to.
  *
- * Between them they use twelve of the field types, three computed formulas, two
- * conditionals and a repeater in each. Somebody who opens one and reads it knows
- * what this plugin does.
+ * Between them they use most of the palette, four computed formulas and a
+ * repeater each. Somebody who opens one and reads it knows what this plugin
+ * does — and somebody who opens Products and views a post knows what their
+ * visitors get.
  *
  * ### On the keys
  *
@@ -70,6 +76,14 @@ function atcf_field_group_templates() {
 			'icon'        => 'dashicons-calendar-alt',
 			'teaches'     => array( __( 'Dates and times', 'allterrain-fields' ), __( 'Computed remaining', 'allterrain-fields' ), __( 'Speakers as people', 'allterrain-fields' ) ),
 			'group'       => atcf_template_event(),
+		),
+		'product'  => array(
+			'slug'        => 'product',
+			'label'       => __( 'Products', 'allterrain-fields' ),
+			'description' => __( 'A spec sheet that renders on the page by itself — no template edit. Photos, a manual, an embedded video, a buy button a block can bind to, and a VAT-inclusive price that works itself out.', 'allterrain-fields' ),
+			'icon'        => 'dashicons-cart',
+			'teaches'     => array( __( 'Front-end display', 'allterrain-fields' ), __( 'Spec tables', 'allterrain-fields' ), __( 'Computed VAT', 'allterrain-fields' ) ),
+			'group'       => atcf_template_product(),
 		),
 	);
 
@@ -854,6 +868,188 @@ function atcf_template_event() {
 				__( 'Registration closes', 'allterrain-fields' ),
 				'date_picker',
 				array()
+			),
+		),
+	);
+}
+
+/**
+ * The Products template.
+ *
+ * The display-layer showcase, and deliberately the only template that ships
+ * with *Show on the front end* already switched on: apply it, fill a post in,
+ * view the post, and the spec sheet is simply there. That one moment teaches
+ * more about the display layer than a page of documentation — and the other
+ * paths hang off the same fields: `[atcf field="price_incl_vat"]` in the
+ * content, a Buttons block bound to the buy link, the `atcf` object on the
+ * post's REST response for a headless storefront.
+ *
+ * @since 0.2.0
+ *
+ * @return array The group.
+ */
+function atcf_template_product() {
+	return array(
+		'title'    => __( 'Product', 'allterrain-fields' ),
+		'location' => atcf_template_location(),
+		'settings' => array(
+			'description' => __( 'Everything a product page needs, rendering itself under the content.', 'allterrain-fields' ),
+			// The point of this template. Everything else it teaches is a
+			// bonus; this line is why it exists.
+			'frontend'    => array(
+				'enabled'   => true,
+				'placement' => 'after',
+				'heading'   => true,
+			),
+		),
+		'fields'   => array(
+			atcf_template_field(
+				'field_product_price',
+				__( 'Price', 'allterrain-fields' ),
+				'number',
+				array(
+					'required' => true,
+					'wrapper'  => atcf_template_width( 33 ),
+					'settings' => array( 'min' => 0 ),
+				)
+			),
+			atcf_template_field(
+				'field_product_vat',
+				__( 'VAT rate', 'allterrain-fields' ),
+				'number',
+				array(
+					'wrapper'  => atcf_template_width( 33 ),
+					'settings' => array(
+						'min'           => 0,
+						'append'        => '%',
+						'default_value' => 21,
+					),
+				)
+			),
+			atcf_template_field(
+				'field_product_incl',
+				__( 'Price incl. VAT', 'allterrain-fields' ),
+				'computed',
+				array(
+					'instructions' => __( 'Works itself out, here and on every save — and `[atcf field="price_incl_vat"]` drops it into the content.', 'allterrain-fields' ),
+					'wrapper'      => atcf_template_width( 34 ),
+					'settings'     => array(
+						'formula'  => '{price} * (1 + {vat_rate} / 100)',
+						'decimals' => 2,
+					),
+				)
+			),
+			atcf_template_field(
+				'field_product_stock',
+				__( 'In stock', 'allterrain-fields' ),
+				'true_false',
+				array(
+					'wrapper'  => atcf_template_width( 50 ),
+					'settings' => array( 'default_value' => true ),
+				)
+			),
+			atcf_template_field(
+				'field_product_restock',
+				__( 'Restock note', 'allterrain-fields' ),
+				'text',
+				array(
+					'instructions' => __( 'Only asked for when the product is out of stock.', 'allterrain-fields' ),
+					'wrapper'      => atcf_template_width( 50 ),
+					'conditional'  => atcf_template_when( 'field_product_stock', 'is', '0' ),
+				)
+			),
+			atcf_template_field(
+				'field_product_photos',
+				__( 'Photos', 'allterrain-fields' ),
+				'gallery',
+				array(
+					'instructions' => __( 'Renders as a row of images on the front end. Drag pictures in from anywhere.', 'allterrain-fields' ),
+				)
+			),
+			atcf_template_field(
+				'field_product_video',
+				__( 'Video', 'allterrain-fields' ),
+				'oembed',
+				array(
+					'instructions' => __( 'A YouTube or Vimeo URL. Visitors get the player, not the link.', 'allterrain-fields' ),
+					'wrapper'      => atcf_template_width( 50 ),
+				)
+			),
+			atcf_template_field(
+				'field_product_manual',
+				__( 'Manual', 'allterrain-fields' ),
+				'file',
+				array(
+					'instructions' => __( 'A PDF, shown as a download link.', 'allterrain-fields' ),
+					'wrapper'      => atcf_template_width( 50 ),
+				)
+			),
+			atcf_template_field(
+				'field_product_buy',
+				__( 'Buy link', 'allterrain-fields' ),
+				'link',
+				array(
+					'instructions' => __( 'Where the money happens. A core Buttons block can bind its URL straight to this field.', 'allterrain-fields' ),
+				)
+			),
+			atcf_template_field(
+				'field_product_specs',
+				__( 'Specifications', 'allterrain-fields' ),
+				'table',
+				array(
+					'instructions' => __( 'The spec sheet itself — it renders as a real table under the content.', 'allterrain-fields' ),
+					'settings'     => array(
+						'header'  => true,
+						'columns' => array(
+							array(
+								'key'   => 'spec',
+								'label' => __( 'Spec', 'allterrain-fields' ),
+							),
+							array(
+								'key'   => 'value',
+								'label' => __( 'Value', 'allterrain-fields' ),
+							),
+						),
+					),
+				)
+			),
+			atcf_template_field(
+				'field_product_box',
+				__( 'In the box', 'allterrain-fields' ),
+				'repeater',
+				array(
+					'settings' => array(
+						'button_label' => __( 'Add an item', 'allterrain-fields' ),
+						'sub_fields'   => array(
+							atcf_template_field(
+								'field_product_item',
+								__( 'Item', 'allterrain-fields' ),
+								'text',
+								array( 'wrapper' => atcf_template_width( 70 ) )
+							),
+							atcf_template_field(
+								'field_product_qty',
+								__( 'Quantity', 'allterrain-fields' ),
+								'number',
+								array(
+									'wrapper'  => atcf_template_width( 30 ),
+									'settings' => array(
+										'min'           => 1,
+										'default_value' => 1,
+									),
+								)
+							),
+						),
+					),
+				)
+			),
+			atcf_template_field(
+				'field_product_related',
+				__( 'Related products', 'allterrain-fields' ),
+				'relationship',
+				array(
+					'instructions' => __( 'On the front end, only ones a visitor could open are linked.', 'allterrain-fields' ),
+				)
 			),
 		),
 	);
