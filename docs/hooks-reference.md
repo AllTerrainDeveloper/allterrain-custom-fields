@@ -510,6 +510,82 @@ apply_filters( 'atcf_options_pages', array[] $pages );
 
 ---
 
+## The display layer
+
+Four ways a stored value reaches a visitor, all free, all escaped by default.
+This is a **public surface**: password fields never render, related posts only
+appear when the visitor could reach them anyway, and users render as display
+names — never as email addresses.
+
+**Zero-code display.** A group whose *Show on the front end* setting is on
+renders on the post's own page, before or after the content. The theme gets
+the first word — `allterrain-fields/group-{key}.php`, then
+`allterrain-fields/group.php`, via `locate_template()` (the template sees
+`$group`, `$post` and `$fields`, each field carrying a loaded `value`) — and
+the built-in renderer draws an escaped definition list otherwise.
+
+**The shortcode.** `[atcf field="price"]`, with optional `post` and `default`
+attributes. Escapes per field type through the same renderer as the zero-code
+display; refuses password fields (default included); reads another post only
+when that post is publicly viewable.
+
+**Block bindings** (WordPress 6.5+). The source `allterrain-fields/field`
+binds a core paragraph, heading, button or image to a field:
+
+```html
+<!-- wp:paragraph {"metadata":{"bindings":{"content":
+    {"source":"allterrain-fields/field","args":{"field":"price"}}}}} -->
+<p>Placeholder shown until the binding resolves.</p>
+<!-- /wp:paragraph -->
+```
+
+URL-shaped attributes (`url`, `src`, `href`) resolve to URLs — an image field
+to its attachment file, a link field to its target, a post field to its
+permalink when public. Everything else resolves as text at the
+`wp_kses_post()` ceiling.
+
+**REST exposure.** Groups with *Expose in the REST API* on add an `atcf`
+object to the post's REST response — field name to formatted value, read-only.
+Writes go through this plugin's own routes, where the per-object capability
+checks live.
+
+### `atcf_display_groups` — Experimental
+
+Which groups render on the front of a post.
+
+```php
+apply_filters( 'atcf_display_groups', array[] $groups, WP_Post $post );
+```
+
+### `atcf_display_markup` — Experimental
+
+A group's rendered front-end section, template or default renderer alike.
+
+```php
+apply_filters( 'atcf_display_markup', string $markup, array $group, WP_Post $post );
+```
+
+### `atcf_display_value_html` — Experimental
+
+One value's front-end HTML, before the built-in rendering runs. Return a
+non-null string — escaped; it is printed as-is — to take over the rendering
+for one field or one type. The same filter serves the zero-code display and
+the shortcode.
+
+```php
+apply_filters( 'atcf_display_value_html', string|null $html, array $field, mixed $value );
+```
+
+### `atcf_rest_field_values` — Experimental
+
+The values a post exposes over REST.
+
+```php
+apply_filters( 'atcf_rest_field_values', array $values, WP_Post $post );
+```
+
+---
+
 ## The JSON sync
 
 ### `atcf_json_dir` — Stable

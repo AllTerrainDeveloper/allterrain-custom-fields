@@ -6459,6 +6459,34 @@ var allTerrainFieldsBuilder = function(exports) {
         }),
         toggle(settings.show_in_rest, "Expose in the REST API", (on) => patch({ show_in_rest: on }))
       );
+      const frontend = settings.frontend ?? { enabled: false, placement: "after", heading: true };
+      box2.append(
+        el("h3", { class: "atcfb__settings-heading", text: "On the front end" }),
+        el("p", {
+          class: "atcfb__settings-note",
+          text: "Turn this on and the group renders on the post’s own page — no template edit, no block. Themes can override it with allterrain-fields/group.php."
+        }),
+        toggle(frontend.enabled, "Show on the front end", (on) => patch({ frontend: { ...frontend, enabled: on } })),
+        el("label", {
+          class: "atcfb__row",
+          children: [
+            el("span", { class: "atcfb__row-label", text: "Placement" }),
+            select(
+              frontend.placement,
+              [
+                { value: "after", label: "After the content" },
+                { value: "before", label: "Before the content" }
+              ],
+              (value) => patch({ frontend: { ...frontend, placement: value === "before" ? "before" : "after" } })
+            )
+          ]
+        }),
+        toggle(
+          frontend.heading,
+          "Show the group title as a heading",
+          (on) => patch({ frontend: { ...frontend, heading: on } })
+        )
+      );
       const block = settings.block;
       box2.append(
         el("h3", { class: "atcfb__settings-heading", text: "As a block" }),
@@ -7012,6 +7040,11 @@ var allTerrainFieldsBuilder = function(exports) {
             keywords: [],
             template: "",
             align: ""
+          },
+          frontend: {
+            enabled: false,
+            placement: "after",
+            heading: true
           }
         }
       });
