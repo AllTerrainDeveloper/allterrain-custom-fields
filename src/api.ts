@@ -240,6 +240,38 @@ export function importGroups(
 	return request( 'import', { method: 'POST', body: JSON.stringify( { groups } ) }, 'field-group-import' );
 }
 
+/** What a Meta Box import could draw from, and the boxes it found. */
+export interface MetaboxSources {
+	/** Whether Meta Box itself is active on the site. */
+	active: boolean;
+	boxes: Array< { id: string; title: string; fields: number; source: string; exists: boolean } >;
+}
+
+/** One imported group, with whatever would not convert. */
+export interface ImportedGroup {
+	id: number;
+	key: string;
+	title: string;
+	fields: number;
+	updated: boolean;
+	warnings: string[];
+}
+
+/** What there is to import from Meta Box. */
+export function metaboxSources(): Promise< MetaboxSources > {
+	return request< MetaboxSources >( 'import/metabox' );
+}
+
+/**
+ * Imports Meta Box definitions.
+ *
+ * With `boxes` it converts a pasted export; with `ids` it imports that subset
+ * of what the site itself holds; with neither it imports everything detected.
+ */
+export function importMetabox( body: { boxes?: unknown[]; ids?: string[] } ): Promise< { imported: ImportedGroup[] } > {
+	return request( 'import/metabox', { method: 'POST', body: JSON.stringify( body ) }, 'field-group-import' );
+}
+
 /** The rendered preview of a group's edit screen. */
 export function preview( id: number, post = 0 ): Promise< { title: string; markup: string; sample: number } > {
 	return request( `preview/${ id }?post=${ post }` );

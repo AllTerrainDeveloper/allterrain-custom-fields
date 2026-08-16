@@ -28,6 +28,8 @@ class Tools {
 	private groups: GroupSummary[] = [];
 	private diff: JsonDiff | null = null;
 	private chosen = new Set< number >();
+	private metabox: api.MetaboxSources | null = null;
+	private metaboxChosen = new Set< string >();
 
 	public constructor( root: HTMLElement ) {
 		this.root = root;
@@ -61,6 +63,14 @@ class Tools {
 			this.diff = null;
 		}
 
+		// So is the Meta Box probe: a site with nothing to migrate just gets
+		// the paste box.
+		try {
+			this.metabox = await api.metaboxSources();
+		} catch {
+			this.metabox = null;
+		}
+
 		this.draw();
 	}
 
@@ -68,7 +78,7 @@ class Tools {
 	private draw(): void {
 		clear( this.root );
 
-		this.root.append( this.exportPane(), this.importPane(), this.syncPane() );
+		this.root.append( this.exportPane(), this.importPane(), this.metaboxPane(), this.syncPane() );
 	}
 
 	/** Export. */
@@ -226,6 +236,159 @@ class Tools {
 			);
 
 			this.groups = await api.listGroups();
+			this.diff = await api.jsonDiff().catch( () => null );
+			this.draw();
+		} catch ( error ) {
+			notify( 'That would not import.', error instanceof Error ? error.message : '', 'error' );
+		}
+	}
+
+	/** Import from Meta Box. */
+	private metaboxPane(): HTMLElement {
+		const children: Array< Node | null > = [
+			el( 'h2', { text: 'Import from Meta Box' } ),
+			el( 'p', {
+				class: 'atcft__note',
+				text:
+					'Simple fields store one plain meta row under both plugins, so their values are already ' +
+					'in place. Groups and cloneable fields are the exception — Meta Box serialises those — ' +
+					'and every one is called out during the import. Importing again updates rather than duplicates.',
+			} ),
+		];
+
+		// Whatever the site itself holds — the running Meta Box, or the
+		// Builder posts it left behind.
+		if ( this.metabox && this.metabox.boxes.length ) {
+			const list = el( 'div', { class: 'atcft__list', attrs: { role: 'group', 'aria-label': 'Meta Box field groups found on this site' } } );
+
+			this.metabox.boxes.forEach( ( box ) => {
+				const check = el( 'input', { attrs: { type: 'checkbox', value: box.id } } ) as HTMLInputElement;
+
+				check.checked = this.metaboxChosen.has( box.id );
+				check.addEventListener( 'change', () => {
+					if ( check.checked ) {
+						this.metaboxChosen.add( box.id );
+					} else {
+						this.metaboxChosen.delete( box.id );
+					}
+				} );
+
+				list.append(
+					el( 'label', {
+						class: 'atcft__item',
+						children: [
+							check,
+							el( 'span', { class: 'atcft__item-title', text: box.title } ),
+							el( 'span', {
+								class: 'atcft__item-meta',
+								text:
+									`${ box.fields } fields · ` +
+									( box.source === 'plugin' ? 'from the running Meta Box' : 'left in the database' ) +
+									( box.exists ? ' · already here, will be updated' : '' ),
+							} ),
+						],
+					} )
+				);
+			} );
+
+			children.push(
+				el( 'p', {
+					class: 'atcft__note',
+					text: this.metabox.active
+						? 'Meta Box is active on this site. These are the boxes it registers, code and Builder alike.'
+						: 'Meta Box is not active, but its Builder definitions are still in the database.',
+				} ),
+				list,
+				el( 'div', {
+					class: 'atcft__actions',
+					children: [
+						button( this.metaboxChosen.size ? `Import ${ this.metaboxChosen.size } selected` : 'Import all of them', {
+							on: { click: () => void this.doMetaboxImport( { ids: Array.from( this.metaboxChosen ) } ) },
+						} ),
+					],
+				} )
+			);
+		}
+
+		// And the file form, for a Builder export carried over from another site.
+		const area = el( 'textarea', {
+			class: 'atcft__paste',
+			attrs: { rows: 6, spellcheck: 'false', placeholder: 'Paste a Meta Box Builder export here, or choose the file.' },
+		} ) as HTMLTextAreaElement;
+
+		const file = el( 'input', { attrs: { type: 'file', accept: 'application/json,.json' } } ) as HTMLInputElement;
+
+		file.addEventListener( 'change', async () => {
+			const chosen = file.files?.[ 0 ];
+
+			if ( chosen ) {
+				area.value = await chosen.text();
+			}
+		} );
+
+		children.push(
+			file,
+			area,
+			button( 'Import the export', {
+				on: {
+					click: () => {
+						if ( ! area.value.trim() ) {
+							return;
+						}
+
+						let parsed: unknown;
+
+						try {
+							parsed = JSON.parse( area.value );
+						} catch {
+							notify( 'That is not valid JSON.', '', 'error' );
+
+							return;
+						}
+
+						void this.doMetaboxImport( { boxes: Array.isArray( parsed ) ? parsed : [ parsed ] } );
+					},
+				},
+			} )
+		);
+
+		return el( 'section', { class: 'atcft__pane', children } );
+	}
+
+	/** Runs a Meta Box import and reports what crossed and what could not. */
+	private async doMetaboxImport( body: { boxes?: unknown[]; ids?: string[] } ): Promise< void > {
+		const count = body.boxes?.length ?? ( body.ids?.length || this.metabox?.boxes.length || 0 );
+
+		const yes = await confirm(
+			`Import ${ count } field group${ count === 1 ? '' : 's' } from Meta Box? Any imported before will be updated.`,
+			{ title: 'Import from Meta Box?', confirmLabel: 'Import' }
+		);
+
+		if ( ! yes ) {
+			return;
+		}
+
+		try {
+			const result = await api.importMetabox( body );
+			const warnings = result.imported.flatMap( ( group ) =>
+				group.warnings.map( ( warning ) => `${ group.title }: ${ warning }` )
+			);
+
+			notify(
+				`${ result.imported.length } imported from Meta Box.`,
+				warnings.length
+					? `${ warnings.length } thing${ warnings.length === 1 ? '' : 's' } to know about — details below.`
+					: 'Everything converted cleanly.',
+				warnings.length ? 'error' : 'success'
+			);
+
+			// The warnings belong on screen, not in a toast that fades: each
+			// one names a field somebody will otherwise hunt for.
+			warnings.forEach( ( warning ) => notify( 'Worth knowing', warning, 'error' ) );
+
+			this.metaboxChosen.clear();
+			this.groups = await api.listGroups();
+			this.metabox = await api.metaboxSources().catch( () => null );
 			this.diff = await api.jsonDiff().catch( () => null );
 			this.draw();
 		} catch ( error ) {
