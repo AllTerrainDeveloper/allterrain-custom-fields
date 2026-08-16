@@ -569,6 +569,47 @@ Return false on a site that would rather keep the namespace clear — because it
 mid-migration and wants the fatal error that tells it a template was missed,
 rather than the silence that hides it.
 
+### `atcf_import_acf_type_map` — Experimental
+
+The ACF-to-AllTerrain field type map the importer translates through. Almost
+every slug is identical; this map holds the strays (`google_map` → `location`,
+`icon_picker` → `icon`). A plugin porting a custom ACF field type adds its own
+slug here and the importer stops flagging it.
+
+```php
+apply_filters( 'atcf_import_acf_type_map', array $map );
+```
+
+### `atcf_import_acf_group` — Experimental
+
+A field group converted from ACF, just before it is saved. The place to carry
+a setting the conversion has no opinion about, or to veto a group by returning
+an empty array.
+
+```php
+apply_filters( 'atcf_import_acf_group', array $group, array $acf, array $warnings );
+```
+
+### `atcf_import_acf_field` — Experimental
+
+The same, per field.
+
+```php
+apply_filters( 'atcf_import_acf_field', array $field, array $acf, array $warnings );
+```
+
+The importer itself is two REST routes under `allterrain-fields/v1`, both
+gated on `atcf_can_manage()`:
+
+- `GET /import/acf` — what there is to import from: whether ACF is active, how
+  many `acf-field-group` posts the database holds, and a summary of every
+  group found (running plugin first, database leftovers second).
+- `POST /import/acf` — imports. A body carrying `groups` converts a pasted ACF
+  export; a body carrying `keys` imports that subset of what the site holds;
+  an empty body imports everything detected. Groups are matched on key, so
+  importing twice updates rather than duplicates. The response lists, per
+  group, whatever would not convert.
+
 ---
 
 ## Functions a plugin may call

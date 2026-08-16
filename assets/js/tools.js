@@ -280,6 +280,12 @@
   function importGroups(groups) {
     return request("import", { method: "POST", body: JSON.stringify({ groups }) }, "field-group-import");
   }
+  function acfSources() {
+    return request("import/acf");
+  }
+  function importAcf(body) {
+    return request("import/acf", { method: "POST", body: JSON.stringify(body) }, "field-group-import");
+  }
   function jsonDiff() {
     return request("sync");
   }
@@ -291,6 +297,8 @@
       this.groups = [];
       this.diff = null;
       this.chosen = /* @__PURE__ */ new Set();
+      this.acf = null;
+      this.acfChosen = /* @__PURE__ */ new Set();
       this.root = root;
     }
     /** Loads and paints. */
@@ -308,12 +316,17 @@
       } catch {
         this.diff = null;
       }
+      try {
+        this.acf = await acfSources();
+      } catch {
+        this.acf = null;
+      }
       this.draw();
     }
     /** Paints. */
     draw() {
       clear(this.root);
-      this.root.append(this.exportPane(), this.importPane(), this.syncPane());
+      this.root.append(this.exportPane(), this.importPane(), this.acfPane(), this.syncPane());
     }
     /** Export. */
     exportPane() {
@@ -439,6 +452,121 @@
           "success"
         );
         this.groups = await listGroups();
+        this.diff = await jsonDiff().catch(() => null);
+        this.draw();
+      } catch (error) {
+        notify("That would not import.", error instanceof Error ? error.message : "", "error");
+      }
+    }
+    /** Import from ACF. */
+    acfPane() {
+      const children = [
+        el("h2", { text: "Import from ACF" }),
+        el("p", {
+          class: "atcft__note",
+          text: "Values are already stored the way ACF stores them, so only the field groups move — nothing is rewritten in the database. Importing again updates rather than duplicates."
+        })
+      ];
+      if (this.acf && this.acf.groups.length) {
+        const list = el("div", { class: "atcft__list", attrs: { role: "group", "aria-label": "ACF field groups found on this site" } });
+        this.acf.groups.forEach((group) => {
+          const box = el("input", { attrs: { type: "checkbox", value: group.key } });
+          box.checked = this.acfChosen.has(group.key);
+          box.addEventListener("change", () => {
+            if (box.checked) {
+              this.acfChosen.add(group.key);
+            } else {
+              this.acfChosen.delete(group.key);
+            }
+          });
+          list.append(
+            el("label", {
+              class: "atcft__item",
+              children: [
+                box,
+                el("span", { class: "atcft__item-title", text: group.title }),
+                el("span", {
+                  class: "atcft__item-meta",
+                  text: `${group.fields} fields · ` + (group.source === "plugin" ? "from the running ACF" : "left in the database") + (group.exists ? " · already here, will be updated" : "")
+                })
+              ]
+            })
+          );
+        });
+        children.push(
+          el("p", {
+            class: "atcft__note",
+            text: this.acf.active ? "ACF is active on this site. These are the groups it reports, PHP- and JSON-registered ones included." : "ACF is not active, but its field groups are still in the database."
+          }),
+          list,
+          el("div", {
+            class: "atcft__actions",
+            children: [
+              button(this.acfChosen.size ? `Import ${this.acfChosen.size} selected` : "Import all of them", {
+                on: { click: () => void this.doAcfImport({ keys: Array.from(this.acfChosen) }) }
+              })
+            ]
+          })
+        );
+      }
+      const area = el("textarea", {
+        class: "atcft__paste",
+        attrs: { rows: 6, spellcheck: "false", placeholder: "Paste an ACF export (acf-export-*.json) here, or choose the file." }
+      });
+      const file = el("input", { attrs: { type: "file", accept: "application/json,.json" } });
+      file.addEventListener("change", async () => {
+        const chosen = file.files?.[0];
+        if (chosen) {
+          area.value = await chosen.text();
+        }
+      });
+      children.push(
+        file,
+        area,
+        button("Import the export", {
+          on: {
+            click: () => {
+              if (!area.value.trim()) {
+                return;
+              }
+              let parsed;
+              try {
+                parsed = JSON.parse(area.value);
+              } catch {
+                notify("That is not valid JSON.", "", "error");
+                return;
+              }
+              void this.doAcfImport({ groups: Array.isArray(parsed) ? parsed : [parsed] });
+            }
+          }
+        })
+      );
+      return el("section", { class: "atcft__pane", children });
+    }
+    /** Runs an ACF import and reports what crossed and what could not. */
+    async doAcfImport(body) {
+      const count = body.groups?.length ?? (body.keys?.length || this.acf?.groups.length || 0);
+      const yes = await confirm(
+        `Import ${count} field group${count === 1 ? "" : "s"} from ACF? Any with a matching key will be updated.`,
+        { title: "Import from ACF?", confirmLabel: "Import" }
+      );
+      if (!yes) {
+        return;
+      }
+      try {
+        const result = await importAcf(body);
+        const warnings = result.imported.flatMap(
+          (group) => group.warnings.map((warning) => `${group.title}: ${warning}`)
+        );
+        notify(
+          `${result.imported.length} imported from ACF.`,
+          warnings.length ? `${warnings.length} thing${warnings.length === 1 ? "" : "s"} would not convert — details below.` : "Everything converted cleanly.",
+          warnings.length ? "error" : "success"
+        );
+        warnings.forEach((warning) => notify("Did not convert", warning, "error"));
+        this.acfChosen.clear();
+        this.groups = await listGroups();
+        this.acf = await acfSources().catch(() => null);
         this.diff = await jsonDiff().catch(() => null);
         this.draw();
       } catch (error) {

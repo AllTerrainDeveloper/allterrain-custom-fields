@@ -109,8 +109,13 @@ way.
 
 = Will my existing ACF values work? =
 
-They are stored in exactly the same place, so yes for values. Field *groups* need
-importing: export them from ACF as JSON and paste them into **Fields → Tools**.
+They are stored in exactly the same place, so yes for values — nothing in the
+database is rewritten. Field *groups* come across through **Fields → Tools →
+Import from ACF**, which reads them from the running ACF plugin, from the rows
+ACF left in the database after being deactivated, or from a pasted
+`acf-export-*.json` file. Groups are matched on key, so importing twice updates
+rather than duplicates, and anything that would not convert is reported rather
+than dropped silently.
 
 = What happens to my data if I delete the plugin? =
 
