@@ -1469,7 +1469,14 @@
           el("label", {
             class: "atcf-switch",
             attrs: { for: id },
-            children: [input, el("span", { class: "atcf-switch__label", text: String(settings.message ?? "") })]
+            children: [
+              input,
+              // The same track the PHP renderer prints. Without it this
+              // renderer's switches were bare checkboxes wearing the
+              // stylesheet's hit-area sizing — the ugly blue pill.
+              el("span", { class: "atcf-switch__track", attrs: { "aria-hidden": "true" } }),
+              el("span", { class: "atcf-switch__label", text: String(settings.message ?? "") })
+            ]
           })
         );
         return;
