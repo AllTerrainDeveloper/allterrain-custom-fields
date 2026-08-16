@@ -78,6 +78,7 @@ class Bulk {
 		this.groupId = this.groups[ 0 ]?.id ?? 0;
 
 		if ( ! this.groupId ) {
+			this.dismissLoader();
 			clear( this.root );
 			this.root.append( el( 'p', { class: 'atcfk__empty', text: 'There are no field groups to edit yet.' } ) );
 
@@ -87,7 +88,19 @@ class Bulk {
 		await this.load();
 	}
 
+	/**
+	 * Removes the template's boot spinner.
+	 *
+	 * A sibling of the mount root, printed by PHP so the window is never blank
+	 * before the bundle runs — so no paint inside the root ever covers it, and
+	 * left alone it says "Loading values…" forever over a grid that loaded.
+	 */
+	private dismissLoader(): void {
+		this.root.closest( '[data-atcfk-root]' )?.querySelector( '[data-atcfk-bar]' )?.remove();
+	}
+
 	private fail( error: unknown ): void {
+		this.dismissLoader();
 		clear( this.root );
 		this.root.append(
 			el( 'div', {
@@ -123,6 +136,7 @@ class Bulk {
 
 	/** Paints the whole thing. */
 	private draw(): void {
+		this.dismissLoader();
 		clear( this.root );
 
 		this.root.append( this.controls(), this.grid(), this.footer() );

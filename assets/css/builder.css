@@ -1200,73 +1200,176 @@
 .atcft__body {
 	flex: 1 1 auto;
 	overflow-y: auto;
-	padding: 16px;
+	padding: 20px;
 	display: grid;
-	gap: 20px;
-	grid-template-columns: repeat( auto-fit, minmax( 280px, 1fr ) );
+	gap: 16px;
+	grid-template-columns: repeat( auto-fit, minmax( 300px, 1fr ) );
 	align-items: start;
 }
 
 .atcft__pane {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
 	border: 1px solid var( --atcfb-border );
 	border-radius: var( --atcfb-radius );
-	padding: 14px;
+	background: var( --atcfb-bg-subtle );
+	padding: 16px 18px 18px;
 }
 
 .atcft__pane h2 {
-	margin: 0 0 6px;
-	font-size: 14px;
+	margin: 0;
+	font-size: 13px;
+	font-weight: 600;
+	padding-block-end: 10px;
+	border-block-end: 1px solid var( --atcfb-border );
+}
+
+.atcft__pane h3 {
+	margin: 0;
+	font-size: 12px;
+	font-weight: 600;
 }
 
 .atcft__note,
 .atcft__path {
-	margin: 0 0 10px;
+	margin: 0;
 	font-size: 12px;
+	line-height: 1.5;
 	color: var( --atcfb-fg-muted );
 }
 
 .atcft__path {
 	font-family: Menlo, Consolas, monaco, monospace;
 	word-break: break-all;
+	padding: 6px 8px;
+	border-radius: var( --atcfb-radius );
+	background: var( --atcfb-bg );
+	box-shadow: inset 0 0 0 1px var( --atcfb-border );
 }
 
 .atcft__list {
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
-	max-block-size: 220px;
+	max-block-size: 240px;
 	overflow-y: auto;
-	margin-block-end: 10px;
+	border-radius: var( --atcfb-radius );
+	background: var( --atcfb-bg );
+	box-shadow: inset 0 0 0 1px var( --atcfb-border );
+	padding: 4px;
 }
 
 .atcft__item {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 10px;
 	font-size: 13px;
+	padding: 7px 8px;
+	border-radius: calc( var( --atcfb-radius ) - 2px );
+	cursor: pointer;
+}
+
+.atcft__item:hover {
+	background: var( --atcfb-bg-subtle );
+}
+
+.atcft__item input[ type='checkbox' ] {
+	margin: 0;
+	accent-color: var( --atcfb-accent );
 }
 
 .atcft__item-meta {
 	margin-inline-start: auto;
 	font-size: 11px;
+	text-align: end;
 	color: var( --atcfb-fg-muted );
+}
+
+.atcft__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
 }
 
 .atcft__paste {
 	inline-size: 100%;
 	box-sizing: border-box;
-	margin-block: 8px;
+	margin: 0;
+	min-block-size: 96px;
+	resize: vertical;
 	font-family: Menlo, Consolas, monaco, monospace;
 	font-size: 12px;
+	line-height: 1.5;
 	border: 1px solid var( --atcfb-border );
 	border-radius: var( --atcfb-radius );
-	padding: 8px;
+	background: var( --atcfb-bg );
+	color: inherit;
+	padding: 8px 10px;
+}
+
+.atcft__paste:focus-visible {
+	outline: 2px solid var( --atcfb-accent );
+	outline-offset: -1px;
+}
+
+.atcft__pane input[ type='file' ] {
+	font-size: 12px;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcft__pane input[ type='file' ]::file-selector-button {
+	font: inherit;
+	color: var( --atcfb-fg );
+	padding: 5px 12px;
+	margin-inline-end: 10px;
+	border: 1px solid var( --atcfb-border );
+	border-radius: var( --atcfb-radius );
+	background: var( --atcfb-bg );
+	cursor: pointer;
+}
+
+/*
+ * The platform fallback buttons. Inside the shell these are usually
+ * `<os-button>` and none of this applies — but the fallback is a contract,
+ * not an accident, and it should not look like one.
+ */
+.atcft__pane button {
+	font: inherit;
+	font-weight: 500;
+	color: var( --atcfb-fg );
+	padding: 6px 14px;
+	border: 1px solid var( --atcfb-border );
+	border-radius: var( --atcfb-radius );
+	background: var( --atcfb-bg );
+	cursor: pointer;
+}
+
+.atcft__pane button:hover:not( :disabled ) {
+	border-color: var( --atcfb-fg-muted );
+}
+
+.atcft__pane button:focus-visible {
+	outline: 2px solid var( --atcfb-accent );
+	outline-offset: 1px;
+}
+
+.atcft__pane button:disabled {
+	color: var( --atcfb-fg-muted );
+	cursor: default;
+}
+
+.atcft__diff {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
 }
 
 .atcft__diff ul {
-	margin: 4px 0 10px;
+	margin: 0;
 	padding-inline-start: 18px;
 	font-size: 12px;
+	line-height: 1.6;
+	color: var( --atcfb-fg-muted );
 }
 
 /* The preview window -------------------------------------------------------- */

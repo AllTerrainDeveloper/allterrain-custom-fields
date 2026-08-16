@@ -47,6 +47,7 @@ class Tools {
 		try {
 			this.groups = await api.listGroups();
 		} catch ( error ) {
+			this.dismissLoader();
 			clear( this.root );
 			this.root.append( el( 'p', { class: 'atcft__error', text: error instanceof Error ? error.message : String( error ) } ) );
 
@@ -64,8 +65,22 @@ class Tools {
 		this.draw();
 	}
 
+	/**
+	 * Removes the template's boot spinner.
+	 *
+	 * The spinner is a sibling of the mount root, printed by PHP so the window
+	 * is never blank before the bundle runs — which means nothing inside the
+	 * root can clear it by painting over it. Left alone it spins forever over
+	 * a window that finished loading, which reads as "stuck" to every person
+	 * who will never know it was decoration.
+	 */
+	private dismissLoader(): void {
+		this.root.closest( '[data-atcft-root]' )?.querySelector( '[data-atcft-bar]' )?.remove();
+	}
+
 	/** Paints. */
 	private draw(): void {
+		this.dismissLoader();
 		clear( this.root );
 
 		this.root.append( this.exportPane(), this.importPane(), this.syncPane() );
