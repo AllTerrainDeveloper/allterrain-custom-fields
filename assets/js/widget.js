@@ -103,9 +103,6 @@
     if (opts.text !== void 0) {
       node.textContent = opts.text;
     }
-    if (opts.html !== void 0) {
-      node.innerHTML = opts.html;
-    }
     if (opts.style) {
       Object.entries(opts.style).forEach(([property, value]) => {
         if (value === void 0 || value === null) {
@@ -2742,7 +2739,11 @@
       if (!url) {
         return;
       }
-      preview.append(el("a", { text: url, attrs: { href: url, target: "_blank", rel: "noreferrer noopener" } }));
+      if (/^https?:\/\//i.test(url)) {
+        preview.append(el("a", { text: url, attrs: { href: url, target: "_blank", rel: "noreferrer noopener" } }));
+      } else {
+        preview.append(el("span", { text: url }));
+      }
     }, 300);
     input.addEventListener("input", refresh);
     host.append(el("div", { class: "atcf-oembed", children: [input, preview] }));

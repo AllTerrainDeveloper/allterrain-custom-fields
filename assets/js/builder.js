@@ -193,9 +193,6 @@ var allTerrainFieldsBuilder = function(exports) {
     if (opts.text !== void 0) {
       node.textContent = opts.text;
     }
-    if (opts.html !== void 0) {
-      node.innerHTML = opts.html;
-    }
     if (opts.style) {
       Object.entries(opts.style).forEach(([property, value]) => {
         if (value === void 0 || value === null) {
@@ -2967,7 +2964,11 @@ var allTerrainFieldsBuilder = function(exports) {
       if (!url) {
         return;
       }
-      preview2.append(el("a", { text: url, attrs: { href: url, target: "_blank", rel: "noreferrer noopener" } }));
+      if (/^https?:\/\//i.test(url)) {
+        preview2.append(el("a", { text: url, attrs: { href: url, target: "_blank", rel: "noreferrer noopener" } }));
+      } else {
+        preview2.append(el("span", { text: url }));
+      }
     }, 300);
     input.addEventListener("input", refresh);
     host.append(el("div", { class: "atcf-oembed", children: [input, preview2] }));
@@ -5760,7 +5761,7 @@ var allTerrainFieldsBuilder = function(exports) {
       hovered = null;
     };
     const onMessage = (event) => {
-      if (event.source !== window.parent) {
+      if (event.source !== window.parent || event.origin !== window.location.origin) {
         return;
       }
       const data = event.data;
@@ -5785,7 +5786,7 @@ var allTerrainFieldsBuilder = function(exports) {
         if (field && wouldAccept(acceptsOf(field), entities)) {
           hovered = field;
           field.classList.add("atcf-field--drop-target");
-          window.parent.postMessage({ type: "os-drag-accept", accepted: true }, "*");
+          window.parent.postMessage({ type: "os-drag-accept", accepted: true }, window.location.origin);
         }
         return;
       }

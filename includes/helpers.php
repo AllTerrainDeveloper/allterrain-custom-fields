@@ -134,6 +134,45 @@ function atcf_sanitize_field_key( $key ) {
 }
 
 /**
+ * Whether a field name would collide with a meta key WordPress itself owns.
+ *
+ * A field's name becomes a meta key verbatim, and on a user that meta key can
+ * be `wp_capabilities` — the row WordPress reads roles out of. No legitimate
+ * field is called that, and a schema is admin-authored, so refusing the name
+ * costs nothing; allowing it would turn "rename a field" into "grant a role"
+ * on any site where the two ever met.
+ *
+ * @since 0.1.0
+ *
+ * @param string $name Sanitised field name.
+ * @return bool True when the name is reserved.
+ */
+function atcf_is_reserved_field_name( $name ) {
+	global $wpdb;
+
+	$reserved = array(
+		$wpdb->prefix . 'capabilities',
+		$wpdb->prefix . 'user_level',
+		$wpdb->prefix . 'user_settings',
+		'wp_capabilities',
+		'wp_user_level',
+		'session_tokens',
+		'use_ssl',
+	);
+
+	/**
+	 * Filters the field names refused because WordPress owns the meta key.
+	 *
+	 * @since 0.1.0
+	 *
+	 * @param string[] $reserved The reserved names.
+	 */
+	$reserved = (array) apply_filters( 'atcf_reserved_field_names', $reserved );
+
+	return in_array( $name, $reserved, true );
+}
+
+/**
  * Mints a new field key.
  *
  * @since 0.1.0
