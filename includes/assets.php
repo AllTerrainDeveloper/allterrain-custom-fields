@@ -227,6 +227,7 @@ function atcf_runtime_strings() {
 	return array(
 		'add'            => __( 'Add', 'allterrain-fields' ),
 		'addRow'         => __( 'Add row', 'allterrain-fields' ),
+		'linkText'       => __( 'Link text', 'allterrain-fields' ),
 		'remove'         => __( 'Remove', 'allterrain-fields' ),
 		'edit'           => __( 'Edit', 'allterrain-fields' ),
 		'clear'          => __( 'Clear', 'allterrain-fields' ),

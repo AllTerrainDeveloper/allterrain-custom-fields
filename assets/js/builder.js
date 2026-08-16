@@ -1387,7 +1387,10 @@ var allTerrainFieldsBuilder = function(exports) {
     });
     const titleInput = control$1("os-text-field", "input", {
       class: "atcf-link__title",
-      attrs: { type: "text", placeholder: t("add", "Add"), "aria-label": "Link text" }
+      // Its own string, not the borrowed "Add" that used to sit here — a
+      // placeholder is the only name an optional input gets, and "Add" names
+      // a button, not a box for the words a link shows.
+      attrs: { type: "text", placeholder: t("linkText", "Link text"), "aria-label": "Link text" }
     });
     const targetInput = el("input", { attrs: { type: "checkbox" } });
     urlInput.value = current.url;
