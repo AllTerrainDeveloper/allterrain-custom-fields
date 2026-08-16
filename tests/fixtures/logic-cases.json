@@ -1,0 +1,163 @@
+{
+	"_comment": "One table, two suites. tests/vitest/logic.test.ts and tests/phpunit/tests/logic.php both run every case in here. A case added to one language is a case added to both, and a change that breaks the parity between the browser engine and the server engine fails in both places. Adding a case is the cheapest thing in this repository; do it whenever a rule surprises you.",
+
+	"rules": [
+		{ "name": "is, equal strings", "value": "draft", "operator": "is", "expected": "draft", "result": true },
+		{ "name": "is, different case", "value": "Draft", "operator": "is", "expected": "draft", "result": true },
+		{ "name": "is, different strings", "value": "draft", "operator": "is", "expected": "publish", "result": false },
+		{ "name": "is, numeric equality across formats", "value": "1", "operator": "is", "expected": "1.0", "result": true },
+		{ "name": "is, leading zero", "value": "01", "operator": "is", "expected": "1", "result": true },
+		{ "name": "is, whitespace is trimmed", "value": "  yes  ", "operator": "is", "expected": "yes", "result": true },
+		{ "name": "is, true reads as 1", "value": true, "operator": "is", "expected": "1", "result": true },
+		{ "name": "is, false reads as 0", "value": false, "operator": "is", "expected": "0", "result": true },
+		{ "name": "is_not, different strings", "value": "draft", "operator": "is_not", "expected": "publish", "result": true },
+		{ "name": "is_not, same strings", "value": "draft", "operator": "is_not", "expected": "draft", "result": false },
+
+		{ "name": "empty, empty string", "value": "", "operator": "empty", "expected": "", "result": true },
+		{ "name": "empty, null", "value": null, "operator": "empty", "expected": "", "result": true },
+		{ "name": "empty, whitespace only", "value": "   ", "operator": "empty", "expected": "", "result": true },
+		{ "name": "empty, empty array", "value": [], "operator": "empty", "expected": "", "result": true },
+		{ "name": "empty, the string zero is NOT empty", "value": "0", "operator": "empty", "expected": "", "result": false },
+		{ "name": "empty, the number zero is NOT empty", "value": 0, "operator": "empty", "expected": "", "result": false },
+		{ "name": "not_empty, a value", "value": "something", "operator": "not_empty", "expected": "", "result": true },
+		{ "name": "not_empty, empty string", "value": "", "operator": "not_empty", "expected": "", "result": false },
+		{ "name": "not_empty, the string zero", "value": "0", "operator": "not_empty", "expected": "", "result": true },
+
+		{ "name": "contains, present", "value": "hello world", "operator": "contains", "expected": "world", "result": true },
+		{ "name": "contains, case-insensitive", "value": "Hello World", "operator": "contains", "expected": "world", "result": true },
+		{ "name": "contains, absent", "value": "hello", "operator": "contains", "expected": "world", "result": false },
+		{ "name": "contains, an empty needle matches nothing", "value": "hello", "operator": "contains", "expected": "", "result": false },
+		{ "name": "not_contains, absent", "value": "hello", "operator": "not_contains", "expected": "world", "result": true },
+		{ "name": "not_contains, present", "value": "hello world", "operator": "not_contains", "expected": "world", "result": false },
+		{ "name": "not_contains, an empty needle passes", "value": "hello", "operator": "not_contains", "expected": "", "result": true },
+
+		{ "name": "starts_with, yes", "value": "wordpress", "operator": "starts_with", "expected": "word", "result": true },
+		{ "name": "starts_with, no", "value": "wordpress", "operator": "starts_with", "expected": "press", "result": false },
+		{ "name": "ends_with, yes", "value": "wordpress", "operator": "ends_with", "expected": "press", "result": true },
+		{ "name": "ends_with, no", "value": "wordpress", "operator": "ends_with", "expected": "word", "result": false },
+
+		{ "name": "greater, numbers", "value": "10", "operator": "greater", "expected": "9", "result": true },
+		{ "name": "greater, compares as numbers not strings", "value": 10, "operator": "greater", "expected": 9, "result": true },
+		{ "name": "greater, equal is not greater", "value": 9, "operator": "greater", "expected": 9, "result": false },
+		{ "name": "greater, non-numeric is always false", "value": "abc", "operator": "greater", "expected": "9", "result": false },
+		{ "name": "greater_equal, equal", "value": 9, "operator": "greater_equal", "expected": 9, "result": true },
+		{ "name": "less, numbers", "value": 3, "operator": "less", "expected": 4, "result": true },
+		{ "name": "less_equal, equal", "value": 4, "operator": "less_equal", "expected": 4, "result": true },
+		{ "name": "less, negative", "value": -5, "operator": "less", "expected": 0, "result": true },
+
+		{ "name": "in, present", "value": "b", "operator": "in", "expected": [ "a", "b", "c" ], "result": true },
+		{ "name": "in, absent", "value": "d", "operator": "in", "expected": [ "a", "b", "c" ], "result": false },
+		{ "name": "in, a comma string is a list", "value": "b", "operator": "in", "expected": "a, b, c", "result": true },
+		{ "name": "not_in, absent", "value": "d", "operator": "not_in", "expected": [ "a", "b" ], "result": true },
+		{ "name": "not_in, present", "value": "a", "operator": "not_in", "expected": [ "a", "b" ], "result": false },
+
+		{ "name": "multi-value: any of them matching is a match", "value": [ "news", "sport" ], "operator": "is", "expected": "sport", "result": true },
+		{ "name": "multi-value: none matching is not", "value": [ "news", "sport" ], "operator": "is", "expected": "arts", "result": false },
+		{ "name": "multi-value: is_not is true only when NONE match", "value": [ "news", "sport" ], "operator": "is_not", "expected": "arts", "result": true },
+		{ "name": "multi-value: is_not is false when one matches", "value": [ "news", "sport" ], "operator": "is_not", "expected": "news", "result": false },
+		{ "name": "multi-value: contains reaches into each", "value": [ "newsletter", "sport" ], "operator": "contains", "expected": "news", "result": true },
+
+		{ "name": "unknown operators fall back to is, rather than silently passing", "value": "draft", "operator": "wat", "expected": "draft", "result": true },
+		{ "name": "the ACF spelling of is", "value": "draft", "operator": "==", "expected": "draft", "result": true },
+		{ "name": "the ACF spelling of is_not", "value": "draft", "operator": "!=", "expected": "publish", "result": true },
+		{ "name": "the ACF spelling of greater", "value": 10, "operator": ">", "expected": 2, "result": true }
+	],
+
+	"visibility": [
+		{
+			"name": "no condition means always shown",
+			"conditional": { "enabled": false, "action": "show", "match": "all", "rules": [] },
+			"values": {},
+			"visible": true
+		},
+		{
+			"name": "enabled with no rules is still always shown",
+			"conditional": { "enabled": true, "action": "show", "match": "all", "rules": [] },
+			"values": {},
+			"visible": true
+		},
+		{
+			"name": "show when the rule holds",
+			"conditional": {
+				"enabled": true,
+				"action": "show",
+				"match": "all",
+				"rules": [ { "field": "field_a", "operator": "is", "value": "yes" } ]
+			},
+			"values": { "field_a": "yes" },
+			"visible": true
+		},
+		{
+			"name": "show when the rule does not hold",
+			"conditional": {
+				"enabled": true,
+				"action": "show",
+				"match": "all",
+				"rules": [ { "field": "field_a", "operator": "is", "value": "yes" } ]
+			},
+			"values": { "field_a": "no" },
+			"visible": false
+		},
+		{
+			"name": "hide inverts it",
+			"conditional": {
+				"enabled": true,
+				"action": "hide",
+				"match": "all",
+				"rules": [ { "field": "field_a", "operator": "is", "value": "yes" } ]
+			},
+			"values": { "field_a": "yes" },
+			"visible": false
+		},
+		{
+			"name": "match all, one fails",
+			"conditional": {
+				"enabled": true,
+				"action": "show",
+				"match": "all",
+				"rules": [
+					{ "field": "field_a", "operator": "is", "value": "yes" },
+					{ "field": "field_b", "operator": "is", "value": "yes" }
+				]
+			},
+			"values": { "field_a": "yes", "field_b": "no" },
+			"visible": false
+		},
+		{
+			"name": "match any, one passes",
+			"conditional": {
+				"enabled": true,
+				"action": "show",
+				"match": "any",
+				"rules": [
+					{ "field": "field_a", "operator": "is", "value": "yes" },
+					{ "field": "field_b", "operator": "is", "value": "yes" }
+				]
+			},
+			"values": { "field_a": "yes", "field_b": "no" },
+			"visible": true
+		},
+		{
+			"name": "a rule pointing at a field that is not there reads as empty",
+			"conditional": {
+				"enabled": true,
+				"action": "show",
+				"match": "all",
+				"rules": [ { "field": "field_gone", "operator": "not_empty", "value": "" } ]
+			},
+			"values": { "field_a": "yes" },
+			"visible": false
+		},
+		{
+			"name": "a switch that is off still satisfies an is-0 rule",
+			"conditional": {
+				"enabled": true,
+				"action": "show",
+				"match": "all",
+				"rules": [ { "field": "field_switch", "operator": "is", "value": "0" } ]
+			},
+			"values": { "field_switch": "0" },
+			"visible": true
+		}
+	]
+}

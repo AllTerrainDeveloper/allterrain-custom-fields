@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AllTerrain Fields — bundle harness</title>
+
+<!--
+	A bench for looking at the windows without a WordPress admin around them.
+
+	Open it directly on a dev site:
+
+		http://localhost:8920/wp-content/plugins/allterrain-fields/bin/harness.html
+
+	It mounts a bundle against canned REST responses, so you can see the builder
+	or the content model in isolation — no login, no field groups in a database,
+	and a reload away from any change to the TypeScript.
+
+	It lives in `bin/`, which `ships()` excludes from every release and from the
+	local deploy, so it never reaches a running site.
+
+	It is deliberately *not* a test. The tests are in `tests/`, they run in CI,
+	and they assert. This is for the half of front-end work that is looking at
+	the thing.
+-->
+
+<link rel="stylesheet" href="../assets/css/fields.css">
+<link rel="stylesheet" href="../assets/css/builder.css">
+<link rel="stylesheet" href="../assets/css/model.css">
+
+<style>
+	body { margin: 0; font: 13px/1.5 -apple-system, system-ui, sans-serif; background: #f0f0f1; }
+	.bench { height: 100vh; display: flex; flex-direction: column; }
+	.bench__bar { display: flex; gap: 8px; align-items: center; padding: 8px 12px; background: #1e1e1e; color: #fff; }
+	.bench__bar a { color: #8ab4ff; text-decoration: none; padding: 4px 8px; border-radius: 4px; }
+	.bench__bar a[aria-current] { background: #3858e9; color: #fff; }
+	.bench__stage { flex: 1; min-height: 0; background: #fff; }
+</style>
+</head>
+<body>
+
+<div class="bench">
+	<div class="bench__bar">
+		<strong>AllTerrain Fields</strong>
+		<a href="?window=builder">Builder</a>
+		<a href="?window=model">Content model</a>
+		<a href="?window=bulk">Bulk editor</a>
+		<a href="?window=tools">Tools</a>
+		<a href="?window=fields">Field runtime</a>
+		<span id="note"></span>
+	</div>
+	<div class="bench__stage" id="stage"></div>
+</div>
+
+<script>
+/* eslint-disable */
+( async function () {
+	const which = new URLSearchParams( location.search ).get( 'window' ) || 'builder';
+
+	document.querySelectorAll( '.bench__bar a' ).forEach( ( link ) => {
+		if ( link.search === `?window=${ which }` ) {
+			link.setAttribute( 'aria-current', 'page' );
+		}
+	} );
+
+	const field = ( key, name, label, type, extra ) => Object.assign( {
+		key, name, label, type,
+		instructions: '', required: false, readonly: false,
+		wrapper: { width: 100, class: '', id: '' },
+		conditional: { enabled: false, action: 'show', match: 'all', rules: [] },
+		settings: {},
+	}, extra || {} );
+
+	const GROUP = {
+		version: 1, key: 'group_demo', title: 'Product details', id: 7, status: 'publish',
+		location: [ [ { param: 'post_type', operator: '==', value: 'product' } ] ],
+		settings: {
+			active: true, description: '', position: 'normal', style: 'default',
+			label_placement: 'top', instruction_placement: 'label', menu_order: 0,
+			hide_on_screen: [], show_in_rest: true,
+			block: { enabled: false, name: '', title: '', description: '', icon: 'block-default', category: 'widgets', keywords: [], template: '', align: '' },
+		},
+		fields: [
+			field( 'field_sku', 'sku', 'SKU', 'text', { required: true } ),
+			field( 'field_price', 'price', 'Price', 'number', { wrapper: { width: 50, class: '', id: '' } } ),
+			field( 'field_vat', 'vat', 'VAT rate', 'number', { wrapper: { width: 50, class: '', id: '' } } ),
+			field( 'field_total', 'price_with_vat', 'Price with VAT', 'computed', { settings: { formula: 'round({price} * (1 + {vat} / 100), 2)', decimals: 2 } } ),
+			field( 'field_stock', 'in_stock', 'In stock', 'true_false' ),
+			field( 'field_lead', 'lead_time', 'Lead time', 'text', {
+				conditional: { enabled: true, action: 'show', match: 'all', rules: [ { field: 'field_stock', operator: 'is', value: 'No, back-ordered' } ] },
+			} ),
+			field( 'field_cases', 'case_studies', 'Case studies', 'relationship', { settings: { post_types: [ 'case_study' ], bidirectional: true, mirror: 'field_products' } } ),
+		],
+	};
+
+	const CONFIG = {
+		fieldTypes: [
+			{ type: 'text', label: 'Text', description: 'One line of plain text.', group: 'basic', icon: 'dashicons-editor-textcolor', value: 'string', settings: { placeholder: '', default_value: '' }, supports: [ 'required', 'default', 'instructions', 'conditional', 'wrapper' ], accepts: [ 'text' ], mount: false },
+			{ type: 'textarea', label: 'Paragraph', description: 'Several lines.', group: 'basic', icon: 'dashicons-editor-paragraph', value: 'string', settings: { rows: 5 }, supports: [ 'required', 'conditional', 'wrapper' ], accepts: [ 'text' ], mount: false },
+			{ type: 'number', label: 'Number', description: 'A number, with a range.', group: 'basic', icon: 'dashicons-calculator', value: 'number', settings: { min: '', max: '' }, supports: [ 'required', 'conditional', 'wrapper' ], accepts: [], mount: false },
+			{ type: 'image', label: 'Image', description: 'One picture.', group: 'content', icon: 'dashicons-format-image', value: 'number', settings: { preview_size: 'medium' }, supports: [ 'required', 'conditional' ], accepts: [ 'media' ], mount: true },
+			{ type: 'true_false', label: 'Switch', description: 'On or off.', group: 'choice', icon: 'dashicons-controls-play', value: 'boolean', settings: {}, supports: [ 'required', 'conditional', 'wrapper' ], accepts: [], mount: false },
+			{ type: 'relationship', label: 'Relationship', description: 'Several other posts.', group: 'relational', icon: 'dashicons-networking', value: 'ids', settings: { post_types: [], bidirectional: false, mirror: '' }, supports: [ 'required', 'conditional' ], accepts: [ 'post' ], mount: true },
+			{ type: 'repeater', label: 'Repeater', description: 'A list of rows.', group: 'layout', icon: 'dashicons-editor-ul', value: 'array', settings: { sub_fields: [], button_label: 'Add row' }, supports: [ 'conditional' ], accepts: [], mount: true },
+			{ type: 'computed', label: 'Computed', description: 'Worked out from the fields beside it.', group: 'advanced', icon: 'dashicons-calculator', value: 'number', settings: { formula: '', decimals: 2 }, supports: [ 'conditional' ], accepts: [], mount: true },
+		],
+		fieldGroups: { basic: 'Basic', content: 'Content', choice: 'Choice', relational: 'Relational', layout: 'Layout', advanced: 'Advanced' },
+		settingControls: {
+			placeholder: { control: 'text', label: 'Placeholder' },
+			min: { control: 'number', label: 'Minimum' },
+			max: { control: 'number', label: 'Maximum' },
+			rows: { control: 'number', label: 'Rows' },
+			preview_size: { control: 'select', label: 'Preview size' },
+			post_types: { control: 'post-types', label: 'Post types' },
+			bidirectional: { control: 'switch', label: 'Mirror on the other side' },
+			mirror: { control: 'field-ref', label: 'Mirrored by' },
+			formula: { control: 'formula', label: 'Formula' },
+			decimals: { control: 'number', label: 'Decimal places' },
+			button_label: { control: 'text', label: 'Add button label' },
+		},
+		operators: { is: 'is', is_not: 'is not', contains: 'contains', empty: 'is empty', not_empty: 'has any value' },
+		locationParams: [ { label: 'Post', params: [ { param: 'post_type', label: 'Post type', choices: 'post_types' }, { param: 'post_status', label: 'Post status', choices: 'post_statuses' } ] } ],
+		locationChoices: { post_types: { all: 'Any post type', post: 'Post', page: 'Page', product: 'Product', case_study: 'Case Study' }, post_statuses: { publish: 'Published', draft: 'Draft' } },
+		postTypes: { post: 'Post', page: 'Page', product: 'Product', case_study: 'Case Study' },
+		taxonomies: { category: 'Category', industry: 'Industry' },
+		roles: { administrator: 'Administrator', editor: 'Editor' },
+		imageSizes: { thumbnail: 'thumbnail', medium: 'medium', full: 'Full size' },
+		optionsPages: [ { slug: 'site', page_title: 'Site details' } ],
+		calcFunctions: [ 'min', 'max', 'sum', 'avg', 'round', 'floor', 'ceil', 'abs', 'sqrt', 'if' ],
+		adminUrl: '/wp-admin/',
+	};
+
+	const SUMMARIES = [
+		{ id: 7, key: 'group_demo', title: 'Product details', fields: 7, top: 7, active: true, local: false, block: false, location: 'post_type is product', types: [ 'product' ] },
+		{ id: 8, key: 'group_case', title: 'Case study details', fields: 5, top: 5, active: true, local: false, block: false, location: 'post_type is case_study', types: [ 'case_study' ] },
+		{ id: 9, key: 'group_seo', title: 'Search appearance', fields: 2, top: 2, active: false, local: true, block: false, location: 'post_type is post, or post_type is page', types: [ 'post', 'page' ] },
+	];
+
+	const MODEL = {
+		nodes: [
+			{ id: 'post', kind: 'post_type', label: 'Posts', icon: 'dashicons-admin-post', count: 24 },
+			{ id: 'page', kind: 'post_type', label: 'Pages', icon: 'dashicons-admin-page', count: 8 },
+			{ id: 'product', kind: 'post_type', label: 'Products', icon: 'dashicons-cart', count: 132 },
+			{ id: 'case_study', kind: 'post_type', label: 'Case Studies', icon: 'dashicons-awards', count: 17 },
+			{ id: 'taxonomy:industry', kind: 'taxonomy', label: 'Industries', icon: 'dashicons-tag', count: 9 },
+			{ id: 'user', kind: 'user', label: 'People', icon: 'dashicons-admin-users', count: 6 },
+		],
+		edges: [
+			{ field: 'field_cases', label: 'Case studies', name: 'case_studies', type: 'relationship', group: 'group_demo', group_id: 7, group_title: 'Product details', from: [ 'product' ], to: [ 'case_study' ], kind: 'post', bidirectional: true, mirror: 'field_products' },
+			{ field: 'field_products', label: 'Products', name: 'products', type: 'relationship', group: 'group_case', group_id: 8, group_title: 'Case study details', from: [ 'case_study' ], to: [ 'product' ], kind: 'post', bidirectional: true, mirror: 'field_cases' },
+			{ field: 'field_industry', label: 'Industry', name: 'industry', type: 'taxonomy', group: 'group_case', group_id: 8, group_title: 'Case study details', from: [ 'case_study' ], to: [ 'taxonomy:industry' ], kind: 'taxonomy', bidirectional: false, mirror: '' },
+			{ field: 'field_owner', label: 'Written by', name: 'written_by', type: 'user', group: 'group_case', group_id: 8, group_title: 'Case study details', from: [ 'case_study' ], to: [ 'user' ], kind: 'user', bidirectional: false, mirror: '' },
+			{ field: 'field_related', label: 'Related posts', name: 'related_posts', type: 'relationship', group: 'group_seo', group_id: 9, group_title: 'Search appearance', from: [ 'post' ], to: [ 'post' ], kind: 'post', bidirectional: true, mirror: 'field_related' },
+		],
+		groups: SUMMARIES,
+	};
+
+	window.allTerrainFields = {
+		restUrl: '/__atcf/', wpRestUrl: '/__wp/', nonce: 'harness', adminUrl: '/wp-admin/',
+		version: 'harness', canManage: true, devMode: true, locale: 'en_US',
+		dragTypes: { field: 'allterrain-fields/field', group: 'allterrain-fields/group', value: 'allterrain-fields/value' },
+		shell: { active: false, chromeless: false },
+	};
+
+	// Canned REST. Writes are accepted and echoed rather than refused, so the
+	// builder's save path can be exercised without a database behind it.
+	const realFetch = window.fetch.bind( window );
+
+	window.fetch = async ( url, init ) => {
+		const path = String( url );
+		let body = {};
+
+		if ( path.includes( '/config' ) ) {
+			body = CONFIG;
+		} else if ( path.includes( '/model' ) ) {
+			body = MODEL;
+		} else if ( path.includes( '/groups/' ) || ( path.includes( '/groups' ) && init && init.method === 'POST' ) ) {
+			body = init && init.body ? JSON.parse( init.body ) : GROUP;
+			body.id = body.id || 7;
+		} else if ( path.includes( '/groups' ) ) {
+			body = SUMMARIES;
+		} else if ( path.includes( '/values' ) && init && init.method === 'POST' ) {
+			body = { written: JSON.parse( init.body ).writes.length, refused: [] };
+		} else if ( path.includes( '/values' ) ) {
+			body = {
+				columns: [
+					{ key: 'field_sku', name: 'sku', label: 'SKU', type: 'text', settings: {} },
+					{ key: 'field_price', name: 'price', label: 'Price', type: 'number', settings: {} },
+					{ key: 'field_stock', name: 'in_stock', label: 'In stock', type: 'true_false', settings: {} },
+					{ key: 'field_cases', name: 'case_studies', label: 'Case studies', type: 'relationship', settings: {} },
+				],
+				rows: [
+					{ id: 7, title: 'Trailhead Pack 40L', status: 'publish', editUrl: '#', canEdit: true, values: { field_sku: 'TH-40', field_price: '189', field_stock: '1', field_cases: [ 10 ] } },
+					{ id: 8, title: 'Ridgeline Jacket', status: 'publish', editUrl: '#', canEdit: true, values: { field_sku: 'RL-JK', field_price: '249.5', field_stock: '1', field_cases: [ 10, 11 ] } },
+					{ id: 9, title: 'Beacon Head Torch', status: 'draft', editUrl: '#', canEdit: false, values: { field_sku: 'BC-HT', field_price: '44', field_stock: '0', field_cases: [] } },
+				],
+				total: 3, pages: 1, postType: 'product', postTypes: [ 'product' ],
+			};
+		} else if ( path.includes( '/sync' ) && init && init.method === 'POST' ) {
+			body = { imported: [ { key: 'group_seo', title: 'Search appearance' } ] };
+		} else if ( path.includes( '/sync' ) ) {
+			body = {
+				new: [ { key: 'group_seo', title: 'Search appearance', fields: 2 } ],
+				modified: [ { key: 'group_demo', id: 7, title: 'Product details', fields: 7 } ],
+				unsynced: [ { key: 'group_case', id: 8, title: 'Case study details' } ],
+				dir: '/srv/site/wp-content/themes/site/acf-json',
+				writable: true,
+			};
+		} else if ( path.includes( '/export' ) ) {
+			body = [ GROUP ];
+		} else if ( path.includes( '/search' ) ) {
+			body = { results: [
+				{ id: 11, label: 'The Northwind rebuild', sub: 'Case Study', icon: 'dashicons-admin-post', editUrl: '#' },
+				{ id: 12, label: 'Kitting out a mountain rescue team', sub: 'Case Study', icon: 'dashicons-admin-post', editUrl: '#' },
+			] };
+		}
+
+		return new Response( JSON.stringify( body ), { status: 200, headers: { 'Content-Type': 'application/json' } } );
+	};
+
+	window.fetch.__real = realFetch;
+
+	const stage = document.getElementById( 'stage' );
+
+	// The field runtime is mounted against markup PHP actually produced, dumped
+	// by `bin/dump-fields.sh`. A hand-written approximation of that markup would
+	// pass while the real renderer drifted away from it, which is the one thing a
+	// harness must not do.
+	if ( which === 'fields' ) {
+		const response = await window.fetch.__real( './fields-sample.html' );
+
+		stage.innerHTML = response.ok
+			? `<div style="padding:20px;max-width:900px">${ await response.text() }</div>`
+			: '<p style="padding:20px">Run <code>bin/dump-fields.sh</code> first.</p>';
+	}
+
+	const stages = {
+		bulk: `<div class="atcfk" data-atcfk-root>
+				<div class="atcfk__bar" data-atcfk-bar></div>
+				<div class="atcfk__body" data-atcfk-body></div>
+			</div>`,
+		tools: `<div class="atcft" data-atcft-root>
+				<div class="atcft__bar" data-atcft-bar></div>
+				<div class="atcft__body" data-atcft-body></div>
+			</div>`,
+	};
+
+	stage.innerHTML = which === 'fields' ? stage.innerHTML : stages[ which ] || ( which === 'model'
+		? `<div class="atcfm" data-atcfm-root>
+				<div class="atcfm__bar" data-atcfm-bar></div>
+				<div class="atcfm__body">
+					<div class="atcfm__canvas" data-atcfm-canvas></div>
+					<aside class="atcfm__side" data-atcfm-side></aside>
+				</div>
+			</div>`
+		: `<div class="atcfb" data-atcfb-root>
+				<div class="atcfb__bar" data-atcfb-bar></div>
+				<div class="atcfb__body">
+					<aside class="atcfb__groups" data-atcfb-groups></aside>
+					<aside class="atcfb__palette" data-atcfb-palette></aside>
+					<main class="atcfb__canvas" data-atcfb-canvas></main>
+					<aside class="atcfb__inspector" data-atcfb-inspector></aside>
+				</div>
+			</div>` );
+
+	const script = document.createElement( 'script' );
+
+	// Cache-busted, because the whole point is reloading after a rebuild.
+	script.src = `../assets/js/${ which }.js?v=${ Date.now() }`;
+	script.onerror = () => {
+		document.getElementById( 'note' ).textContent = 'That bundle is not built. Run npm run build:bundles.';
+	};
+
+	document.head.append( script );
+}() );
+</script>
+
+</body>
+</html>

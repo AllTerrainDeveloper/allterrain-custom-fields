@@ -1,0 +1,14 @@
+{
+	"core": null,
+	"plugins": [],
+	"mappings": {
+		"wp-content/plugins/allterrain-fields": ".",
+		"wp-content/plugins/desktop-mode": "../alcazaba-plugin"
+	},
+	"config": {
+		"WP_DEBUG": true,
+		"SCRIPT_DEBUG": true
+	},
+	"port": 8920,
+	"testsPort": 8921
+}

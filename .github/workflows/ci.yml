@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  js:
+    name: TypeScript
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run typecheck
+
+      - run: npm test
+
+      # `assets/js` is committed on purpose — it is what makes "download the zip
+      # from a tag and install it" work with no `npm install`. That only holds
+      # while the committed bundles match the TypeScript they came from, so the
+      # build runs and the tree has to come back clean.
+      - name: The committed bundles match their source
+        run: |
+          ATCF_SKIP_DEPLOY=1 npm run build:bundles
+          git diff --exit-code -- assets/js
+
+  php:
+    name: PHP
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # `.wp-env.json` mounts a sibling OpenStation checkout that does not exist
+      # on a runner, and wp-env treats a missing mapping as fatal. Replacing the
+      # mappings wholesale loses nothing: every shell call in this plugin sits
+      # behind `atcf_shell_has()`, which is simply false when no shell is there.
+      - name: Point wp-env at this checkout only
+        run: |
+          cat > .wp-env.override.json <<'JSON'
+          { "mappings": { "wp-content/plugins/allterrain-fields": "." } }
+          JSON
+
+      - run: npx wp-env start
+
+      - run: npx wp-env run tests-cli --env-cwd=wp-content/plugins/allterrain-fields composer install --no-interaction
+
+      - name: PHPUnit
+        run: npx wp-env run tests-cli --env-cwd=wp-content/plugins/allterrain-fields vendor/bin/phpunit --configuration tests/phpunit/phpunit.xml.dist
+
+      - name: PHPCS
+        run: npx wp-env run tests-cli --env-cwd=wp-content/plugins/allterrain-fields vendor/bin/phpcs
+
+  package:
+    name: Package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # This job exists because a packaging script that only ever runs at release
+      # time is a script that breaks at release time.
+      - run: ATCF_SKIP_DEPLOY=1 npm run plugin:package
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: allterrain-fields
+          path: dist/*.zip

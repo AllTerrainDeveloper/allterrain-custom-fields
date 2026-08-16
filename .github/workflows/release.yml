@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The tag to re-deploy
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # Four places carry the version and they must agree. Checked *before* the
+      # Release exists, and that ordering is the point: a bad commit can be
+      # replaced, and a published tag cannot.
+      - name: The version agrees everywhere
+        run: |
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          VERSION="${TAG#v}"
+          BARE="${VERSION%%-*}"
+
+          check () {
+            grep -q "$2" "$1" || { echo "::error file=$1::expected $2"; exit 1; }
+          }
+
+          check allterrain-fields.php "Version: *${BARE}$"
+          check allterrain-fields.php "ATCF_VERSION = '${BARE}'"
+          check readme.txt "Stable tag: ${BARE}"
+          check package.json "\"version\": \"${BARE}\""
+
+      - run: npm ci
+
+      - run: ATCF_SKIP_DEPLOY=1 npm run plugin:package
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.zip
+          # A prerelease stops here. WordPress.org has no concept of one, and
+          # pushing it would make it the live download.
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          generate_release_notes: true
+
+      - name: Deploy to WordPress.org
+        if: ${{ !contains(github.ref_name, '-') }}
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: allterrain-fields
+          BUILD_DIR: dist/allterrain-fields

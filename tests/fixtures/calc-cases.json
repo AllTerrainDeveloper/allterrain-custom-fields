@@ -1,0 +1,969 @@
+{
+	"_comment": "One table, two suites. tests/vitest/calc.test.ts and tests/phpunit/tests/calc.php both run every case. `result` is a number, or the empty string for an expression the evaluator refuses — which is the value both engines return rather than throwing, because a formula somebody is halfway through typing is malformed on almost every keystroke.",
+	"cases": [
+		{
+			"name": "a bare number",
+			"formula": "42",
+			"values": {},
+			"result": 42
+		},
+		{
+			"name": "addition",
+			"formula": "1 + 2",
+			"values": {},
+			"result": 3
+		},
+		{
+			"name": "subtraction",
+			"formula": "10 - 4",
+			"values": {},
+			"result": 6
+		},
+		{
+			"name": "multiplication before addition",
+			"formula": "2 + 3 * 4",
+			"values": {},
+			"result": 14
+		},
+		{
+			"name": "brackets change that",
+			"formula": "(2 + 3) * 4",
+			"values": {},
+			"result": 20
+		},
+		{
+			"name": "division",
+			"formula": "10 / 4",
+			"values": {},
+			"result": 2.5
+		},
+		{
+			"name": "modulo",
+			"formula": "10 % 3",
+			"values": {},
+			"result": 1
+		},
+		{
+			"name": "exponent",
+			"formula": "2 ^ 10",
+			"values": {},
+			"result": 1024
+		},
+		{
+			"name": "exponent is right-associative",
+			"formula": "2 ^ 3 ^ 2",
+			"values": {},
+			"result": 512
+		},
+		{
+			"name": "unary minus",
+			"formula": "-5 + 2",
+			"values": {},
+			"result": -3
+		},
+		{
+			"name": "unary minus binds looser than the exponent",
+			"formula": "-2 ^ 2",
+			"values": {},
+			"result": -4
+		},
+		{
+			"name": "unary minus after an operator",
+			"formula": "3 * -2",
+			"values": {},
+			"result": -6
+		},
+		{
+			"name": "decimals",
+			"formula": "0.1 + 0.2",
+			"values": {},
+			"result": 0.30000000000000004
+		},
+		{
+			"name": "division by zero is zero, not an error",
+			"formula": "5 / 0",
+			"values": {},
+			"result": 0
+		},
+		{
+			"name": "modulo by zero is zero",
+			"formula": "5 % 0",
+			"values": {},
+			"result": 0
+		},
+		{
+			"name": "a variable",
+			"formula": "{price}",
+			"values": {
+				"price": 12
+			},
+			"result": 12
+		},
+		{
+			"name": "two variables",
+			"formula": "{price} * {quantity}",
+			"values": {
+				"price": 12,
+				"quantity": 3
+			},
+			"result": 36
+		},
+		{
+			"name": "a variable that is a numeric string",
+			"formula": "{price} + 1",
+			"values": {
+				"price": "9"
+			},
+			"result": 10
+		},
+		{
+			"name": "an unset variable is zero",
+			"formula": "{price} + 5",
+			"values": {},
+			"result": 5
+		},
+		{
+			"name": "a non-numeric variable is zero",
+			"formula": "{price} + 5",
+			"values": {
+				"price": "lots"
+			},
+			"result": 5
+		},
+		{
+			"name": "an empty variable is zero",
+			"formula": "{price} + 5",
+			"values": {
+				"price": ""
+			},
+			"result": 5
+		},
+		{
+			"name": "a true variable is one",
+			"formula": "{on} + 1",
+			"values": {
+				"on": true
+			},
+			"result": 2
+		},
+		{
+			"name": "a false variable is zero",
+			"formula": "{on} + 1",
+			"values": {
+				"on": false
+			},
+			"result": 1
+		},
+		{
+			"name": "variable names may hold underscores",
+			"formula": "{unit_price} * 2",
+			"values": {
+				"unit_price": 7
+			},
+			"result": 14
+		},
+		{
+			"name": "whitespace inside the braces is trimmed",
+			"formula": "{ price } * 2",
+			"values": {
+				"price": 4
+			},
+			"result": 8
+		},
+		{
+			"name": "min",
+			"formula": "min(3, 1, 2)",
+			"values": {},
+			"result": 1
+		},
+		{
+			"name": "max",
+			"formula": "max(3, 1, 2)",
+			"values": {},
+			"result": 3
+		},
+		{
+			"name": "sum",
+			"formula": "sum(1, 2, 3, 4)",
+			"values": {},
+			"result": 10
+		},
+		{
+			"name": "avg",
+			"formula": "avg(2, 4, 6)",
+			"values": {},
+			"result": 4
+		},
+		{
+			"name": "round to whole",
+			"formula": "round(2.5)",
+			"values": {},
+			"result": 3
+		},
+		{
+			"name": "round half away from zero, negative",
+			"formula": "round(-2.5)",
+			"values": {},
+			"result": -3
+		},
+		{
+			"name": "round to two places",
+			"formula": "round(1.005, 2)",
+			"values": {},
+			"result": 1.01
+		},
+		{
+			"name": "floor",
+			"formula": "floor(2.9)",
+			"values": {},
+			"result": 2
+		},
+		{
+			"name": "ceil",
+			"formula": "ceil(2.1)",
+			"values": {},
+			"result": 3
+		},
+		{
+			"name": "abs",
+			"formula": "abs(-7)",
+			"values": {},
+			"result": 7
+		},
+		{
+			"name": "sqrt",
+			"formula": "sqrt(16)",
+			"values": {},
+			"result": 4
+		},
+		{
+			"name": "sqrt of a negative is zero, not NaN",
+			"formula": "sqrt(-4)",
+			"values": {},
+			"result": 0
+		},
+		{
+			"name": "nested functions",
+			"formula": "max(min(5, 3), 2)",
+			"values": {},
+			"result": 3
+		},
+		{
+			"name": "a function over variables",
+			"formula": "round({a} / {b}, 2)",
+			"values": {
+				"a": 10,
+				"b": 3
+			},
+			"result": 3.33
+		},
+		{
+			"name": "if, true branch",
+			"formula": "if(1, 10, 20)",
+			"values": {},
+			"result": 10
+		},
+		{
+			"name": "if, false branch",
+			"formula": "if(0, 10, 20)",
+			"values": {},
+			"result": 20
+		},
+		{
+			"name": "if with a comparison",
+			"formula": "if({qty} > 10, 5, 0)",
+			"values": {
+				"qty": 20
+			},
+			"result": 5
+		},
+		{
+			"name": "comparisons yield one or zero",
+			"formula": "3 > 2",
+			"values": {},
+			"result": 1
+		},
+		{
+			"name": "a false comparison",
+			"formula": "2 > 3",
+			"values": {},
+			"result": 0
+		},
+		{
+			"name": "equality",
+			"formula": "2 == 2",
+			"values": {},
+			"result": 1
+		},
+		{
+			"name": "inequality",
+			"formula": "2 != 2",
+			"values": {},
+			"result": 0
+		},
+		{
+			"name": "and",
+			"formula": "1 && 0",
+			"values": {},
+			"result": 0
+		},
+		{
+			"name": "or",
+			"formula": "1 || 0",
+			"values": {},
+			"result": 1
+		},
+		{
+			"name": "true and false as words",
+			"formula": "if(true, 1, 2)",
+			"values": {},
+			"result": 1
+		},
+		{
+			"name": "a realistic total",
+			"formula": "round({price} * {qty} * (1 + {vat}), 2)",
+			"values": {
+				"price": 19.99,
+				"qty": 3,
+				"vat": 0.2
+			},
+			"result": 71.96
+		},
+		{
+			"name": "an empty formula",
+			"formula": "",
+			"values": {},
+			"result": ""
+		},
+		{
+			"name": "whitespace only",
+			"formula": "   ",
+			"values": {},
+			"result": ""
+		},
+		{
+			"name": "an unclosed bracket",
+			"formula": "(1 + 2",
+			"values": {},
+			"result": ""
+		},
+		{
+			"name": "an unopened bracket",
+			"formula": "1 + 2)",
+			"values": {},
+			"result": ""
+		},
+		{
+			"name": "an unclosed variable",
+			"formula": "{price",
+			"values": {},
+			"result": ""
+		},
+		{
+			"name": "an unknown function",
+			"formula": "exec(1)",
+			"values": {},
+			"result": ""
+		},
+		{
+			"name": "a bare identifier is not a variable",
+			"formula": "price + 1",
+			"values": {
+				"price": 5
+			},
+			"result": ""
+		},
+		{
+			"name": "a character with no meaning",
+			"formula": "1 @ 2",
+			"values": {},
+			"result": ""
+		},
+		{
+			"name": "two decimal points",
+			"formula": "1.2.3",
+			"values": {},
+			"result": ""
+		},
+		{
+			"name": "a dangling operator",
+			"formula": "1 +",
+			"values": {},
+			"result": ""
+		},
+		{
+			"name": "nothing but an operator",
+			"formula": "*",
+			"values": {},
+			"result": ""
+		},
+		{
+			"name": "pow raises",
+			"formula": "pow(2, 10)",
+			"values": {},
+			"result": 1024
+		},
+		{
+			"name": "pow with a fractional exponent is a root",
+			"formula": "pow(9, 0.5)",
+			"values": {},
+			"result": 3
+		},
+		{
+			"name": "pow with a negative exponent",
+			"formula": "pow(2, -2)",
+			"values": {},
+			"result": 0.25
+		},
+		{
+			"name": "pow that overflows is refused rather than infinite",
+			"formula": "pow(10, 400)",
+			"values": {},
+			"result": 0
+		},
+		{
+			"name": "pow agrees with the caret operator",
+			"formula": "pow(3, 3) - 3 ^ 3",
+			"values": {},
+			"result": 0
+		},
+		{
+			"name": "mod of whole numbers",
+			"formula": "mod(7, 3)",
+			"values": {},
+			"result": 1
+		},
+		{
+			"name": "mod keeps the fraction, unlike an integer modulo",
+			"formula": "mod(7.5, 2)",
+			"values": {},
+			"result": 1.5
+		},
+		{
+			"name": "mod of a negative takes the sign of the left side",
+			"formula": "mod(-7, 3)",
+			"values": {},
+			"result": -1
+		},
+		{
+			"name": "mod by zero is zero, not NaN",
+			"formula": "mod(7, 0)",
+			"values": {},
+			"result": 0
+		},
+		{
+			"name": "mod picks out every second row",
+			"formula": "mod({index}, 2)",
+			"values": {
+				"index": 4
+			},
+			"result": 0
+		},
+		{
+			"name": "clamp leaves a value inside the range alone",
+			"formula": "clamp(5, 0, 10)",
+			"values": {},
+			"result": 5
+		},
+		{
+			"name": "clamp pulls up to the floor",
+			"formula": "clamp(-3, 0, 10)",
+			"values": {},
+			"result": 0
+		},
+		{
+			"name": "clamp pulls down to the ceiling",
+			"formula": "clamp(99, 0, 10)",
+			"values": {},
+			"result": 10
+		},
+		{
+			"name": "clamp swaps bounds given the wrong way round",
+			"formula": "clamp(5, 10, 0)",
+			"values": {},
+			"result": 5
+		},
+		{
+			"name": "clamp holds a stock level at zero",
+			"formula": "clamp({stock}, 0, 999)",
+			"values": {
+				"stock": -4
+			},
+			"result": 0
+		},
+		{
+			"name": "median of an odd count",
+			"formula": "median(1, 9, 5)",
+			"values": {},
+			"result": 5
+		},
+		{
+			"name": "median of an even count averages the middle two",
+			"formula": "median(1, 2, 3, 4)",
+			"values": {},
+			"result": 2.5
+		},
+		{
+			"name": "median does not care about the order given",
+			"formula": "median(9, 1, 5)",
+			"values": {},
+			"result": 5
+		},
+		{
+			"name": "median of one is itself",
+			"formula": "median(7)",
+			"values": {},
+			"result": 7
+		},
+		{
+			"name": "median of prices",
+			"formula": "median({a}, {b}, {c})",
+			"values": {
+				"a": 250000,
+				"b": 180000,
+				"c": 320000
+			},
+			"result": 250000
+		},
+		{
+			"name": "product multiplies everything",
+			"formula": "product(2, 3, 4)",
+			"values": {},
+			"result": 24
+		},
+		{
+			"name": "product of one is itself",
+			"formula": "product(6)",
+			"values": {},
+			"result": 6
+		},
+		{
+			"name": "product with a zero is zero",
+			"formula": "product(5, 0, 3)",
+			"values": {},
+			"result": 0
+		},
+		{
+			"name": "product of a line item",
+			"formula": "product({qty}, {unit}, 1.21)",
+			"values": {
+				"qty": 3,
+				"unit": 10
+			},
+			"result": 36.3
+		},
+		{
+			"name": "pct is a percentage of a whole",
+			"formula": "pct(25, 200)",
+			"values": {},
+			"result": 12.5
+		},
+		{
+			"name": "pct of the whole is a hundred",
+			"formula": "pct(80, 80)",
+			"values": {},
+			"result": 100
+		},
+		{
+			"name": "pct guards the zero denominator that would be a division by zero",
+			"formula": "pct(25, 0)",
+			"values": {},
+			"result": 0
+		},
+		{
+			"name": "pct works out a margin",
+			"formula": "round(pct({price} - {cost}, {price}), 1)",
+			"values": {
+				"price": 120,
+				"cost": 90
+			},
+			"result": 25
+		},
+		{
+			"name": "int drops the decimals",
+			"formula": "int(4.9)",
+			"values": {},
+			"result": 4
+		},
+		{
+			"name": "int truncates toward zero, unlike floor",
+			"formula": "int(-4.9)",
+			"values": {},
+			"result": -4
+		},
+		{
+			"name": "int and floor disagree on negatives, which is the point",
+			"formula": "int(-2.5) - floor(-2.5)",
+			"values": {},
+			"result": 1
+		},
+		{
+			"name": "int of a whole number is unchanged",
+			"formula": "int(7)",
+			"values": {},
+			"result": 7
+		},
+		{
+			"name": "sign of a positive",
+			"formula": "sign(12)",
+			"values": {},
+			"result": 1
+		},
+		{
+			"name": "sign of a negative",
+			"formula": "sign(-0.5)",
+			"values": {},
+			"result": -1
+		},
+		{
+			"name": "sign of zero is zero, not one",
+			"formula": "sign(0)",
+			"values": {},
+			"result": 0
+		},
+		{
+			"name": "sign turns a change into an up or down marker",
+			"formula": "sign({now} - {before})",
+			"values": {
+				"now": 3,
+				"before": 8
+			},
+			"result": -1
+		},
+		{
+			"name": "the new functions nest with the old ones",
+			"formula": "round(clamp(pct({sold}, {total}), 0, 100), 0)",
+			"values": {
+				"sold": 7,
+				"total": 9
+			},
+			"result": 78
+		},
+		{
+			"name": "a function nobody implements is still refused",
+			"formula": "median2(1, 2)",
+			"values": {},
+			"result": ""
+		},
+		{
+			"name": "pow with the wrong number of arguments is refused",
+			"formula": "pow(2)",
+			"values": {},
+			"result": ""
+		},
+		{
+			"name": "clamp with the wrong number of arguments is refused",
+			"formula": "clamp(1, 2)",
+			"values": {},
+			"result": ""
+		},
+		{
+			"name": "round still takes an optional places argument",
+			"formula": "round(2.7)",
+			"values": {},
+			"result": 3
+		},
+		{
+			"name": "round with too many arguments is refused",
+			"formula": "round(2.7, 1, 4)",
+			"values": {},
+			"result": ""
+		},
+		{
+			"name": "if with no else branch is refused rather than guessed at",
+			"formula": "if(1, 2)",
+			"values": {},
+			"result": ""
+		},
+		{
+			"name": "abs with two arguments is refused",
+			"formula": "abs(1, 2)",
+			"values": {},
+			"result": ""
+		},
+		{
+			"name": "mod with one argument is refused",
+			"formula": "mod(7)",
+			"values": {},
+			"result": ""
+		},
+		{
+			"name": "pct with three arguments is refused",
+			"formula": "pct(1, 2, 3)",
+			"values": {},
+			"result": ""
+		},
+		{
+			"name": "a variadic function takes as many as it likes",
+			"formula": "sum(1, 2, 3, 4, 5)",
+			"values": {},
+			"result": 15
+		},
+		{
+			"name": "a variadic function takes one",
+			"formula": "max(9)",
+			"values": {},
+			"result": 9
+		},
+		{
+			"name": "sum takes a repeater column",
+			"formula": "sum({lines.amount})",
+			"values": {
+				"lines.amount": [
+					2,
+					3,
+					5
+				]
+			},
+			"result": 10
+		},
+		{
+			"name": "sum mixes a column with plain numbers",
+			"formula": "sum({lines.amount}, 10, {tax})",
+			"values": {
+				"lines.amount": [
+					2,
+					3
+				],
+				"tax": 1
+			},
+			"result": 16
+		},
+		{
+			"name": "a column on its own is its total",
+			"formula": "{lines.amount}",
+			"values": {
+				"lines.amount": [
+					2,
+					3,
+					5
+				]
+			},
+			"result": 10
+		},
+		{
+			"name": "a column in arithmetic is its total",
+			"formula": "{lines.amount} * 2",
+			"values": {
+				"lines.amount": [
+					2,
+					3
+				]
+			},
+			"result": 10
+		},
+		{
+			"name": "avg divides a column by its own length",
+			"formula": "avg({lines.amount})",
+			"values": {
+				"lines.amount": [
+					2,
+					4,
+					9
+				]
+			},
+			"result": 5
+		},
+		{
+			"name": "min over a column",
+			"formula": "min({lines.amount})",
+			"values": {
+				"lines.amount": [
+					7,
+					2,
+					9
+				]
+			},
+			"result": 2
+		},
+		{
+			"name": "max over a column",
+			"formula": "max({lines.amount})",
+			"values": {
+				"lines.amount": [
+					7,
+					2,
+					9
+				]
+			},
+			"result": 9
+		},
+		{
+			"name": "median over a column",
+			"formula": "median({lines.amount})",
+			"values": {
+				"lines.amount": [
+					9,
+					1,
+					5
+				]
+			},
+			"result": 5
+		},
+		{
+			"name": "product over a column",
+			"formula": "product({lines.amount})",
+			"values": {
+				"lines.amount": [
+					2,
+					3,
+					4
+				]
+			},
+			"result": 24
+		},
+		{
+			"name": "count says how many rows",
+			"formula": "count({lines.amount})",
+			"values": {
+				"lines.amount": [
+					2,
+					3,
+					5
+				]
+			},
+			"result": 3
+		},
+		{
+			"name": "count of a plain number is one",
+			"formula": "count({price})",
+			"values": {
+				"price": 12
+			},
+			"result": 1
+		},
+		{
+			"name": "count of an empty column is nothing",
+			"formula": "count({lines.amount})",
+			"values": {
+				"lines.amount": []
+			},
+			"result": 0
+		},
+		{
+			"name": "an empty column sums to nothing rather than blanking the total",
+			"formula": "sum({lines.amount}) + 5",
+			"values": {
+				"lines.amount": []
+			},
+			"result": 5
+		},
+		{
+			"name": "text in a column counts as nothing",
+			"formula": "sum({lines.amount})",
+			"values": {
+				"lines.amount": [
+					2,
+					"n/a",
+					3
+				]
+			},
+			"result": 5
+		},
+		{
+			"name": "a column of one is that one",
+			"formula": "sum({address.postcode})",
+			"values": {
+				"address.postcode": [
+					42
+				]
+			},
+			"result": 42
+		},
+		{
+			"name": "the average cost of a line",
+			"formula": "round(sum({lines.amount}) / count({lines.amount}), 2)",
+			"values": {
+				"lines.amount": [
+					10,
+					21
+				]
+			},
+			"result": 15.5
+		},
+		{
+			"name": "a column and its count agree with avg",
+			"formula": "avg({lines.amount}) - sum({lines.amount}) / count({lines.amount})",
+			"values": {
+				"lines.amount": [
+					3,
+					4,
+					8
+				]
+			},
+			"result": 0
+		},
+		{
+			"name": "negating a column negates its total",
+			"formula": "-{lines.amount}",
+			"values": {
+				"lines.amount": [
+					2,
+					3
+				]
+			},
+			"result": -5
+		},
+		{
+			"name": "a column compares as its total",
+			"formula": "if({lines.amount} > 4, 1, 0)",
+			"values": {
+				"lines.amount": [
+					2,
+					3
+				]
+			},
+			"result": 1
+		},
+		{
+			"name": "count is variadic, so it takes several columns",
+			"formula": "count({a.x}, {b.y})",
+			"values": {
+				"a.x": [
+					1,
+					2
+				],
+				"b.y": [
+					3
+				]
+			},
+			"result": 3
+		},
+		{
+			"name": "a dotted name nothing supplies is still zero",
+			"formula": "sum({lines.nope}) + 1",
+			"values": {},
+			"result": 1
+		}
+	],
+	"variables": [
+		{
+			"formula": "{a} + {b}",
+			"names": [
+				"a",
+				"b"
+			]
+		},
+		{
+			"formula": "{a} + {a}",
+			"names": [
+				"a"
+			]
+		},
+		{
+			"formula": "round({unit_price} * {qty}, 2)",
+			"names": [
+				"unit_price",
+				"qty"
+			]
+		},
+		{
+			"formula": "1 + 2",
+			"names": []
+		},
+		{
+			"formula": "not a formula @",
+			"names": []
+		}
+	]
+}

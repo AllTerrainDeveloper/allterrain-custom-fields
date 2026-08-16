@@ -1,0 +1,714 @@
+/**
+ * The Content Model window.
+ *
+ * A canvas with absolutely positioned nodes and an SVG behind them holding the
+ * edges. The SVG is behind rather than in front because the nodes are the thing
+ * you interact with — an overlay would take every click meant for a node, and
+ * `pointer-events: none` on the overlay would then take them away from the edges
+ * too.
+ */
+
+.atcfm {
+	--atcfm-border: var( --os-ui-border, #dcdcde );
+	--atcfm-bg: var( --os-window-bg, #fff );
+	--atcfm-bg-subtle: var( --os-ui-bg-subtle, #f6f7f7 );
+	--atcfm-fg: var( --os-ui-fg, #1e1e1e );
+	--atcfm-fg-muted: var( --os-ui-fg-muted, #646970 );
+	--atcfm-accent: var( --os-ui-accent, #3858e9 );
+	--atcfm-radius: var( --os-ui-radius, 6px );
+
+	container-type: inline-size;
+	display: flex;
+	flex-direction: column;
+	block-size: 100%;
+	color: var( --atcfm-fg );
+	background: var( --atcfm-bg );
+	font-size: 13px;
+}
+
+.atcfm__bar {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+	padding: 10px 14px;
+	border-block-end: 1px solid var( --atcfm-border );
+	background: var( --atcfm-bg-subtle );
+	flex: 0 0 auto;
+}
+
+.atcfm__legend {
+	display: flex;
+	gap: 12px;
+}
+
+.atcfm__legend-item {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	font-size: 11px;
+	color: var( --atcfm-fg-muted );
+}
+
+.atcfm__legend-item::before {
+	content: '';
+	inline-size: 22px;
+	block-size: 0;
+	border-block-start: 2px solid var( --atcfm-accent );
+}
+
+.atcfm__legend-item--both::before {
+	border-block-start-style: double;
+	border-block-start-width: 4px;
+}
+
+.atcfm__legend-item--tax::before {
+	border-block-start-style: dashed;
+}
+
+.atcfm__hint {
+	margin: 0;
+	font-size: 11px;
+	color: var( --atcfm-fg-muted );
+}
+
+.atcfm__bar > :last-child {
+	margin-inline-start: auto;
+}
+
+.atcfm__body {
+	display: grid;
+	grid-template-columns: minmax( 0, 1fr ) 300px;
+	flex: 1 1 auto;
+	min-block-size: 0;
+}
+
+@container ( max-width: 760px ) {
+	.atcfm__body {
+		grid-template-columns: minmax( 0, 1fr );
+		grid-template-rows: minmax( 0, 1fr ) 240px;
+	}
+}
+
+.atcfm__canvas {
+	position: relative;
+	overflow: auto;
+	background-image: radial-gradient( var( --atcfm-border ) 1px, transparent 1px );
+	background-size: 22px 22px;
+	min-block-size: 0;
+}
+
+.atcfm__svg {
+	position: absolute;
+	inset-block-start: 0;
+	inset-inline-start: 0;
+	pointer-events: none;
+	overflow: visible;
+}
+
+/*
+ * The edges take pointer events back, because clicking one selects its field.
+ * A wide transparent stroke would be the usual trick for making a 1.5px line
+ * clickable; `stroke-linecap` plus a generous `stroke-width` on hover does the
+ * same job without a second path per edge.
+ */
+.atcfm__edge {
+	fill: none;
+	stroke: var( --atcfm-accent );
+	stroke-width: 2;
+	opacity: 0.6;
+	pointer-events: stroke;
+	cursor: pointer;
+}
+
+.atcfm__edge:hover {
+	opacity: 1;
+	stroke-width: 3;
+}
+
+.atcfm__edge--taxonomy {
+	stroke-dasharray: 5 4;
+}
+
+.atcfm__edge--user {
+	stroke: var( --os-ui-fg-muted, #646970 );
+}
+
+.atcfm__edge--drawing {
+	stroke-dasharray: 4 4;
+	opacity: 0.8;
+	pointer-events: none;
+}
+
+.atcfm__svg marker path {
+	fill: var( --atcfm-accent );
+}
+
+.atcfm__edge-label {
+	fill: var( --atcfm-fg-muted );
+	font-size: 10px;
+	text-anchor: middle;
+	pointer-events: auto;
+	cursor: pointer;
+	paint-order: stroke;
+	stroke: var( --atcfm-bg );
+	stroke-width: 3px;
+}
+
+/* Nodes --------------------------------------------------------------------- */
+
+/*
+ * A card, not a pill.
+ *
+ * The pill held one line, so the only thing it could say was the type's name and
+ * a number — and the number it showed was the post count, which is the least
+ * relevant fact about a content model. There is no arrangement of "Posts 966"
+ * that tells somebody what they have built. Three lines fit the answer: the
+ * name, how many custom fields it has, and which field group put them there.
+ */
+.atcfm__node {
+	position: absolute;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 3px;
+	min-inline-size: 168px;
+	max-inline-size: 280px;
+	padding: 10px 13px;
+	border: 1px solid var( --atcfm-border );
+	border-radius: 10px;
+	background: var( --atcfm-bg );
+	box-shadow: 0 2px 8px rgba( 0, 0, 0, 0.08 );
+	cursor: grab;
+	user-select: none;
+	touch-action: none;
+	z-index: 2;
+}
+
+.atcfm__node:focus-visible {
+	outline: 2px solid var( --atcfm-accent );
+	outline-offset: 2px;
+}
+
+.atcfm__node--taxonomy {
+	border-style: dashed;
+}
+
+.atcfm__node--user {
+	background: var( --atcfm-bg-subtle );
+}
+
+.atcfm__node.is-drop-target {
+	border-color: var( --atcfm-accent );
+	box-shadow: 0 0 0 3px var( --atcfm-accent );
+}
+
+.atcfm__node-head {
+	display: flex;
+	align-items: center;
+	gap: 7px;
+	inline-size: 100%;
+}
+
+.atcfm__node-label {
+	font-weight: 600;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/*
+ * A type that carries fields is the thing you came to look at, so it is the
+ * thing that is lit. Everything else on the canvas is context and reads as
+ * context — same size, same position, less ink.
+ */
+.atcfm__node.is-built {
+	border-color: var( --atcfm-accent );
+	box-shadow: 0 2px 10px rgba( 0, 0, 0, 0.14 );
+}
+
+.atcfm__node:not( .is-built ) {
+	opacity: 0.72;
+}
+
+.atcfm__node:not( .is-built ):hover,
+.atcfm__node:not( .is-built ):focus-within {
+	opacity: 1;
+}
+
+/*
+ * The body of a class-diagram box.
+ *
+ * A rule above and below, so the box reads as name / contents / provenance the
+ * way a UML class reads as name / attributes / operations. That convention is
+ * forty years old and everybody who has ever seen a diagram knows how to read
+ * it without being told, which is the entire reason to borrow it rather than
+ * invent a prettier arrangement.
+ */
+.atcfm__node-list {
+	inline-size: 100%;
+	margin-block: 6px 4px;
+	padding-block: 6px;
+	border-block: 1px solid var( --atcfm-border );
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+
+.atcfm__node-field {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	font-size: 11px;
+	line-height: 1.5;
+}
+
+/* A repeater's own fields, indented under it. */
+.atcfm__node-field.is-sub {
+	padding-inline-start: 8px;
+	opacity: 0.75;
+}
+
+/*
+ * The meta key, in the typeface it will be typed in. This is the string somebody
+ * puts inside `get_post_meta()`, so it is set as code — the visual difference is
+ * what stops it being read as a label somebody chose for a screen.
+ */
+.atcfm__node-field-name {
+	flex: 1 1 auto;
+	min-inline-size: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-family: var( --os-ui-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace );
+	color: var( --atcfm-fg );
+}
+
+.atcfm__node-field-type {
+	flex: 0 0 auto;
+	color: var( --atcfm-fg-muted );
+	font-size: 10px;
+}
+
+.atcfm__node-more {
+	font-size: 10px;
+	font-style: italic;
+	color: var( --atcfm-fg-muted );
+}
+
+.atcfm__node-fields {
+	font-size: 11px;
+	line-height: 1.35;
+	color: var( --atcfm-fg-muted );
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+}
+
+.atcfm__node.is-built .atcfm__node-fields {
+	color: var( --atcfm-accent );
+}
+
+.atcfm__node-count {
+	margin-inline-start: auto;
+	padding: 1px 7px;
+	border-radius: 999px;
+	background: var( --atcfm-bg-subtle );
+	font-size: 11px;
+	color: var( --atcfm-fg-muted );
+	font-variant-numeric: tabular-nums;
+}
+
+
+/*
+ * The two buttons on a box: ⊕ to join it to another, × to remove a type made
+ * here.
+ *
+ * They sit **inside** the card, in the header's normal flow, and they are always
+ * present — dimmed until the box is hovered rather than absent until then.
+ *
+ * Both of those are corrections. They used to hang off the corners on negative
+ * insets and fade in from `opacity: 0`, which meant the only way to reach one was
+ * to move the pointer off the card and onto a target that existed because the
+ * pointer was still on the card. Any wobble at that boundary — and there is
+ * always wobble, because the button overhangs a rounded corner — flickers the
+ * thing you are aiming at in and out of existence.
+ *
+ * Dimmed-not-absent also means the affordance is discoverable. A control that
+ * only exists once you are already hovering the right object is a control nobody
+ * finds who did not already know it was there.
+ */
+.atcfm__node-actions {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	margin-inline-start: 4px;
+}
+
+.atcfm__node-handle,
+.atcfm__node-remove {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	inline-size: 20px;
+	block-size: 20px;
+	padding: 0;
+	border: 1px solid transparent;
+	border-radius: 50%;
+	background: none;
+	font-size: 13px;
+	line-height: 1;
+	opacity: 0.4;
+	transition: opacity 0.12s ease, background-color 0.12s ease;
+}
+
+.atcfm__node-handle {
+	color: var( --atcfm-accent );
+	cursor: crosshair;
+	touch-action: none;
+}
+
+.atcfm__node-remove {
+	color: var( --atcfm-fg-muted );
+	font-size: 15px;
+	cursor: pointer;
+}
+
+.atcfm__node:hover .atcfm__node-handle,
+.atcfm__node:hover .atcfm__node-remove,
+.atcfm__node:focus-within .atcfm__node-handle,
+.atcfm__node:focus-within .atcfm__node-remove {
+	opacity: 0.75;
+}
+
+/* Each button lights itself, so the one under the pointer is unambiguous. */
+.atcfm__node-handle:hover,
+.atcfm__node-handle:focus-visible,
+.atcfm__node-remove:hover,
+.atcfm__node-remove:focus-visible {
+	opacity: 1;
+	border-color: var( --atcfm-border );
+	background: var( --atcfm-bg-subtle );
+}
+
+.atcfm__node-remove:hover,
+.atcfm__node-remove:focus-visible {
+	color: var( --atcfm-danger, #d63638 );
+}
+
+
+/* The side panel ------------------------------------------------------------ */
+
+.atcfm__side {
+	border-inline-start: 1px solid var( --atcfm-border );
+	overflow-y: auto;
+	padding: 14px;
+	min-inline-size: 0;
+}
+
+.atcfm__side-title {
+	margin: 0 0 4px;
+	font-size: 13px;
+}
+
+.atcfm__side-hint {
+	margin: 0 0 10px;
+	font-size: 11px;
+	color: var( --atcfm-fg-muted );
+}
+
+.atcfm__groups {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.atcfm__group {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 8px 10px;
+	border: 1px solid var( --atcfm-border );
+	border-radius: var( --atcfm-radius );
+	background: var( --atcfm-bg );
+	cursor: grab;
+	touch-action: none;
+}
+
+.atcfm__group.is-off {
+	opacity: 0.55;
+}
+
+.atcfm__group-title {
+	font-weight: 600;
+}
+
+.atcfm__group-meta {
+	margin-inline-start: auto;
+	font-size: 10px;
+	color: var( --atcfm-fg-muted );
+	text-align: end;
+	max-inline-size: 40%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.atcfm__detail h2 {
+	margin: 0 0 10px;
+	font-size: 14px;
+}
+
+.atcfm__detail-list {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 4px 10px;
+	margin: 0 0 14px;
+	font-size: 12px;
+}
+
+.atcfm__detail-list dt {
+	color: var( --atcfm-fg-muted );
+}
+
+.atcfm__detail-list dd {
+	margin: 0;
+}
+
+.atcfm__propose h2 {
+	margin: 0 0 6px;
+	font-size: 14px;
+}
+
+.atcfm__propose-note,
+.atcfm__propose-warning {
+	margin: 0 0 10px;
+	font-size: 12px;
+	color: var( --atcfm-fg-muted );
+}
+
+.atcfm__propose-warning {
+	color: var( --os-ui-danger, #d63638 );
+}
+
+.atcfm__row {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-block-end: 10px;
+	font-size: 12px;
+}
+
+.atcfm__row--check {
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+}
+
+.atcfm__row input,
+.atcfm__row select {
+	inline-size: 100%;
+	box-sizing: border-box;
+	padding: 5px 8px;
+	border: 1px solid var( --atcfm-border );
+	border-radius: var( --atcfm-radius );
+	background: var( --atcfm-bg );
+	color: inherit;
+}
+
+.atcfm__row--check input {
+	inline-size: auto;
+}
+
+.atcfm__propose-actions {
+	display: flex;
+	gap: 8px;
+}
+
+.atcfm__error {
+	padding: 30px;
+	color: var( --os-ui-danger, #d63638 );
+}
+
+.atcf-drag-ghost--group {
+	font-weight: 600;
+}
+
+@media ( forced-colors: active ) {
+	.atcfm__edge {
+		stroke: CanvasText;
+	}
+
+	.atcfm__node.is-drop-target {
+		box-shadow: 0 0 0 3px Highlight;
+	}
+}
+
+/* The side panel's explainers ------------------------------------------------ */
+
+/*
+ * This panel used to be a heading, a one-line hint and a list of field groups.
+ * That is a perfectly good panel for somebody who already knows what a field
+ * group is and what it attaches to — which is nobody on their first visit. It
+ * now reads as the two steps in order, because the order *is* the mental model:
+ * make a place to put things, then say what those things have.
+ */
+.atcfm__explain {
+	padding: 4px 0 14px;
+	border-block-end: 1px solid var( --atcfm-border );
+	margin-block-end: 14px;
+}
+
+.atcfm__explain h2 {
+	margin: 0 0 6px;
+	font-size: 13px;
+}
+
+.atcfm__explain p {
+	margin: 0 0 6px;
+	font-size: 12px;
+	line-height: 1.55;
+	color: var( --atcfm-fg-muted );
+}
+
+.atcfm__step {
+	display: flex;
+	gap: 10px;
+	margin-block-end: 16px;
+}
+
+.atcfm__step-number {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	inline-size: 22px;
+	block-size: 22px;
+	border-radius: 50%;
+	background: var( --atcfm-accent );
+	color: #fff;
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.atcfm__step-body {
+	min-inline-size: 0;
+}
+
+.atcfm__step-body h3 {
+	margin: 2px 0 4px;
+	font-size: 13px;
+}
+
+.atcfm__step-body p {
+	margin: 0 0 8px;
+	font-size: 12px;
+	line-height: 1.55;
+	color: var( --atcfm-fg-muted );
+}
+
+/* The new-content-type form -------------------------------------------------- */
+
+.atcfm__form h2 {
+	margin: 0 0 6px;
+	font-size: 14px;
+}
+
+.atcfm__form-lead {
+	margin: 0 0 16px;
+	font-size: 12px;
+	line-height: 1.55;
+	color: var( --atcfm-fg-muted );
+}
+
+.atcfm__form-row {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-block-end: 14px;
+}
+
+.atcfm__form-label {
+	font-size: 12px;
+	font-weight: 600;
+}
+
+/*
+ * A hint under a control, not beside it. Beside it means it competes with the
+ * control for the same line and loses; under it means it is read after the
+ * question and before the answer, which is when it helps.
+ */
+.atcfm__form-hint {
+	margin: -2px 0 12px;
+	font-size: 11px;
+	line-height: 1.5;
+	color: var( --atcfm-fg-muted );
+}
+
+/*
+ * The switch rows in the new-content-type form.
+ *
+ * They were four `<os-switch block>` elements stacked with no space between
+ * them, so a label, its explanation, and the *next* label ran together as one
+ * block of grey text — you could not tell where one question ended and the next
+ * began, or which switch belonged to which sentence.
+ *
+ * A rule between each, room to breathe, and a hover that lights the whole row
+ * fixes all three at once. The hover matters most: it is the only thing on
+ * screen that says "this line and that switch are the same control".
+ */
+.atcfm__switches {
+	margin-block: 4px 16px;
+	border: 1px solid var( --atcfm-border );
+	border-radius: var( --atcfm-radius, 6px );
+	overflow: hidden;
+}
+
+.atcfm__switches os-switch,
+.atcfm__switches .atcf-toggle {
+	display: flex;
+	inline-size: 100%;
+	box-sizing: border-box;
+	padding: 10px 12px;
+	border-block-end: 1px solid var( --atcfm-border );
+	transition: background-color 0.12s ease;
+}
+
+.atcfm__switches > :last-child {
+	border-block-end: 0;
+}
+
+/*
+ * The whole row lights, not just the switch. `<os-switch>` already makes its own
+ * label clickable, so the lit area and the hit area are the same shape — which
+ * is the property that makes a row feel like one thing rather than two.
+ */
+.atcfm__switches os-switch:hover,
+.atcfm__switches .atcf-toggle:hover {
+	background: var( --atcfm-bg-subtle );
+}
+
+.atcfm__form-error:empty {
+	display: none;
+}
+
+.atcfm__form-error {
+	margin: 10px 0;
+	padding: 8px 10px;
+	border-radius: 6px;
+	background: rgba( 214, 54, 56, 0.12 );
+	color: var( --atcfm-danger, #d63638 );
+	font-size: 12px;
+	line-height: 1.5;
+}
+
+.atcfm__form-actions {
+	display: flex;
+	gap: 8px;
+	margin-block-start: 18px;
+}
+
+.atcfm__new-type {
+	margin-block-start: 2px;
+}

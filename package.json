@@ -1,0 +1,45 @@
+{
+	"name": "allterrain-fields",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Custom fields for WordPress with every premium feature free, as an OpenStation desktop app.",
+	"license": "GPL-2.0-or-later",
+	"type": "module",
+	"engines": {
+		"node": ">=20"
+	},
+	"scripts": {
+		"build": "npm run build:bundles && npm run deploy",
+		"build:builder": "ATCF_TARGET=builder vite build --mode development && ATCF_TARGET=builder vite build --mode production",
+		"build:bulk": "ATCF_TARGET=bulk vite build --mode development && ATCF_TARGET=bulk vite build --mode production",
+		"build:bundles": "npm run build:fields && npm run build:builder && npm run build:model && npm run build:tools && npm run build:bulk && npm run build:widget && npm run build:dock",
+		"build:dock": "ATCF_TARGET=dock vite build --mode development && ATCF_TARGET=dock vite build --mode production",
+		"build:fields": "ATCF_TARGET=fields vite build --mode development && ATCF_TARGET=fields vite build --mode production",
+		"build:model": "ATCF_TARGET=model vite build --mode development && ATCF_TARGET=model vite build --mode production",
+		"build:tools": "ATCF_TARGET=tools vite build --mode development && ATCF_TARGET=tools vite build --mode production",
+		"build:widget": "ATCF_TARGET=widget vite build --mode development && ATCF_TARGET=widget vite build --mode production",
+		"check": "npm run typecheck && npm run test && npm run build:bundles",
+		"deploy": "node bin/deploy.mjs",
+		"dev": "ATCF_TARGET=builder vite build --mode development --watch",
+		"env:start": "wp-env start",
+		"env:stop": "wp-env stop",
+		"lint:php": "./vendor/bin/phpcs",
+		"lint:php:fix": "./vendor/bin/phpcbf",
+		"plugin:build": "npm run typecheck && npm run test && npm run build:bundles",
+		"plugin:package": "npm run plugin:build && node bin/package.mjs",
+		"test": "vitest run",
+		"test:php": "wp-env run tests-cli --env-cwd=wp-content/plugins/allterrain-fields vendor/bin/phpunit --configuration tests/phpunit/phpunit.xml.dist",
+		"test:php:install": "wp-env run tests-cli --env-cwd=wp-content/plugins/allterrain-fields composer install",
+		"test:php:local": "phpunit --configuration tests/phpunit/phpunit.xml.dist",
+		"test:php:site": "bin/test-php.sh",
+		"test:watch": "vitest",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@wordpress/env": "^10.0.0",
+		"jsdom": "^25.0.1",
+		"typescript": "^5.7.2",
+		"vite": "^5.4.11",
+		"vitest": "^2.1.8"
+	}
+}

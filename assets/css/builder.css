@@ -1,0 +1,2308 @@
+/**
+ * The builder, the bulk editor and the tools window.
+ *
+ * A four-pane layout — groups, palette, canvas, inspector — that collapses to
+ * two on a narrow window and to one on a phone. `@container` rather than
+ * `@media`, because a window is not a viewport: a builder window 600px wide on a
+ * 2560px screen has to lay itself out as a narrow thing, and a media query would
+ * ask the wrong question and get the wrong answer.
+ */
+
+.atcfb,
+.atcfk,
+.atcft,
+.atcfp {
+	--atcfb-border: var( --os-ui-border, #dcdcde );
+	--atcfb-bg: var( --os-window-bg, #fff );
+	--atcfb-bg-subtle: var( --os-ui-bg-subtle, #f6f7f7 );
+	--atcfb-fg: var( --os-ui-fg, #1e1e1e );
+	--atcfb-fg-muted: var( --os-ui-fg-muted, #646970 );
+	--atcfb-accent: var( --os-ui-accent, #3858e9 );
+	--atcfb-danger: var( --os-ui-danger, #d63638 );
+	--atcfb-radius: var( --os-ui-radius, 6px );
+
+	container-type: inline-size;
+	display: flex;
+	flex-direction: column;
+	block-size: 100%;
+	color: var( --atcfb-fg );
+	background: var( --atcfb-bg );
+	font-size: 13px;
+}
+
+/* The bar ------------------------------------------------------------------- */
+
+.atcfb__bar,
+.atcfk__controls,
+.atcft__bar,
+.atcfp__bar {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 10px 14px;
+	border-block-end: 1px solid var( --atcfb-border );
+	background: var( --atcfb-bg-subtle );
+	flex: 0 0 auto;
+}
+
+.atcfb__title {
+	flex: 1 1 240px;
+	min-inline-size: 0;
+	font-size: 15px;
+	font-weight: 600;
+	padding: 6px 10px;
+	border: 1px solid transparent;
+	border-radius: var( --atcfb-radius );
+	background: transparent;
+	color: inherit;
+}
+
+.atcfb__title:hover,
+.atcfb__title:focus-visible {
+	border-color: var( --atcfb-border );
+	background: var( --atcfb-bg );
+}
+
+.atcfb__tabs {
+	display: flex;
+	gap: 2px;
+}
+
+.atcfb__tab {
+	padding: 6px 12px;
+	border: 0;
+	border-radius: var( --atcfb-radius );
+	background: transparent;
+	cursor: pointer;
+	color: var( --atcfb-fg-muted );
+	font-size: 13px;
+}
+
+.atcfb__tab[ aria-selected='true' ] {
+	background: var( --atcfb-bg );
+	color: var( --atcfb-fg );
+	font-weight: 600;
+	box-shadow: inset 0 0 0 1px var( --atcfb-border );
+}
+
+.atcfb__bar-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-inline-start: auto;
+}
+
+.atcfb__status {
+	font-size: 12px;
+	color: var( --atcfb-fg-muted );
+}
+
+/* The panes ----------------------------------------------------------------- */
+
+.atcfb__body {
+	display: grid;
+	grid-template-columns: 220px 200px minmax( 0, 1fr ) 320px;
+	flex: 1 1 auto;
+	min-block-size: 0;
+}
+
+.atcfb__groups,
+.atcfb__palette,
+.atcfb__inspector {
+	border-inline-end: 1px solid var( --atcfb-border );
+	overflow-y: auto;
+	padding: 12px;
+	min-inline-size: 0;
+}
+
+.atcfb__inspector {
+	border-inline-end: 0;
+	border-inline-start: 1px solid var( --atcfb-border );
+}
+
+.atcfb__canvas {
+	position: relative;
+	overflow-y: auto;
+	/* The left padding is the logic map's gutter — `GUTTER` in `logic-map.ts`
+	   has to agree with it, or the curves hang outside the pane. */
+	padding: 16px 16px 16px 56px;
+	min-inline-size: 0;
+}
+
+/* The drawer toggles are for narrow windows only. */
+.atcfb__drawer-toggle {
+	display: none;
+}
+
+.atcfb__scrim {
+	display: none;
+	position: absolute;
+	inset: 0;
+	z-index: 5;
+	background: rgba( 0, 0, 0, 0.28 );
+	border: 0;
+	padding: 0;
+	cursor: pointer;
+}
+
+/*
+ * Below 1100px the palette and the inspector become **drawers**: off-canvas
+ * until asked for, over the canvas while they are out, gone again afterwards.
+ *
+ * They used to be neither. The palette was `display: none`, which meant a narrow
+ * window had no field types, no search box and therefore no way to add a field
+ * at all — the builder simply stopped being a builder. The inspector was a
+ * permanent overlay pinned across the right of the canvas, with nothing to
+ * dismiss it, so the pane you could not close was covering the pane you needed.
+ *
+ * Four columns in 900px is genuinely the wrong answer — each gets about 200px,
+ * least of all the canvas, which is where the work happens. Drawers are the
+ * right one, and the missing half was that a drawer has to be openable.
+ */
+@container ( max-width: 1100px ) {
+	.atcfb__body {
+		grid-template-columns: 200px minmax( 0, 1fr );
+	}
+
+	.atcfb__drawer-toggle {
+		display: inline-flex;
+	}
+
+	.atcfb__palette,
+	.atcfb__inspector {
+		position: absolute;
+		inset-block: 0;
+		inline-size: min( 340px, 88% );
+		background: var( --atcfb-bg );
+		z-index: 6;
+		transition: transform 0.16s ease;
+	}
+
+	.atcfb__palette {
+		inset-inline-start: 0;
+		border-inline-end: 1px solid var( --atcfb-border );
+		box-shadow: 8px 0 24px rgba( 0, 0, 0, 0.18 );
+		transform: translateX( -102% );
+	}
+
+	.atcfb__inspector {
+		inset-inline-end: 0;
+		border-inline-start: 1px solid var( --atcfb-border );
+		box-shadow: -8px 0 24px rgba( 0, 0, 0, 0.18 );
+		transform: translateX( 102% );
+	}
+
+	/* RTL: a drawer slides out of the edge it is pinned to, whichever that is. */
+	[ dir='rtl' ] .atcfb__palette {
+		transform: translateX( 102% );
+	}
+
+	[ dir='rtl' ] .atcfb__inspector {
+		transform: translateX( -102% );
+	}
+
+	.atcfb[ data-atcfb-drawer='palette' ] .atcfb__palette,
+	.atcfb[ data-atcfb-drawer='inspector' ] .atcfb__inspector {
+		transform: none;
+	}
+
+	/*
+	 * Something to press that is not the drawer, to put it away again.
+	 *
+	 * A real element rather than a `::after`, because a pseudo-element cannot
+	 * take a click — and a scrim you cannot press is a scrim that only dims.
+	 */
+	.atcfb[ data-atcfb-drawer='palette' ] .atcfb__scrim,
+	.atcfb[ data-atcfb-drawer='inspector' ] .atcfb__scrim {
+		display: block;
+	}
+
+	.atcfb[ data-atcfb-drawer='palette' ] .atcfb__drawer-toggle--palette,
+	.atcfb[ data-atcfb-drawer='inspector' ] .atcfb__drawer-toggle--inspector {
+		border-color: var( --atcfb-accent );
+		color: var( --atcfb-accent );
+	}
+}
+
+@container ( max-width: 700px ) {
+	.atcfb__body {
+		grid-template-columns: minmax( 0, 1fr );
+	}
+
+	.atcfb__groups {
+		display: none;
+	}
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.atcfb__palette,
+	.atcfb__inspector {
+		transition: none;
+	}
+}
+
+/* The group list ------------------------------------------------------------ */
+
+/*
+ * Heading on its own line, buttons on the next.
+ *
+ * The rail is 220px. "Field groups" set in uppercase with letter-spacing is
+ * already most of that, so putting two buttons on the same line wrapped the
+ * heading onto two lines and left both buttons squeezed against the edge. There
+ * is no arrangement of a two-word label and two buttons that fits across 220px;
+ * the row is the thing that has to go.
+ */
+.atcfb__groups-head {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-block-end: 10px;
+}
+
+.atcfb__groups-head h2 {
+	margin: 0;
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var( --atcfb-fg-muted );
+}
+
+/* The two buttons share the width evenly, so neither reads as the primary one. */
+.atcfb__groups-actions {
+	display: flex;
+	gap: 6px;
+}
+
+.atcfb__groups-actions > * {
+	flex: 1 1 0;
+	min-inline-size: 0;
+}
+
+.atcfb__groups-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.atcfb__group {
+	position: relative;
+	display: flex;
+	align-items: stretch;
+	border-radius: var( --atcfb-radius );
+}
+
+.atcfb__group-open {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	flex: 1;
+	min-inline-size: 0;
+	padding: 8px 10px;
+	border: 0;
+	border-radius: var( --atcfb-radius );
+	background: transparent;
+	text-align: start;
+	cursor: pointer;
+	color: inherit;
+	font: inherit;
+}
+
+/*
+ * Revealed on hover and on focus-within — never hidden from the keyboard, which
+ * `display: none` would do. Deleting a field group is not something to make
+ * mouse-only.
+ */
+.atcfb__group-delete {
+	flex: 0 0 auto;
+	align-self: center;
+	inline-size: 24px;
+	block-size: 24px;
+	margin-inline-end: 4px;
+	border: 0;
+	border-radius: 4px;
+	background: transparent;
+	color: var( --atcfb-fg-muted );
+	font-size: 16px;
+	line-height: 1;
+	cursor: pointer;
+	opacity: 0;
+}
+
+.atcfb__group:hover .atcfb__group-delete,
+.atcfb__group:focus-within .atcfb__group-delete {
+	opacity: 1;
+}
+
+.atcfb__group-delete:hover,
+.atcfb__group-delete:focus-visible {
+	background: var( --atcfb-danger );
+	color: #fff;
+	opacity: 1;
+}
+
+.atcfb__group:hover {
+	background: var( --atcfb-bg-subtle );
+}
+
+.atcfb__group.is-active {
+	background: var( --atcfb-accent );
+	color: #fff;
+}
+
+.atcfb__group.is-active .atcfb__group-meta {
+	color: rgba( 255, 255, 255, 0.8 );
+}
+
+.atcfb__group.is-active .atcfb__group-delete {
+	color: rgba( 255, 255, 255, 0.85 );
+}
+
+.atcfb__group.is-off {
+	opacity: 0.55;
+}
+
+.atcfb__group-title {
+	font-weight: 600;
+}
+
+.atcfb__group-meta {
+	font-size: 11px;
+	color: var( --atcfb-fg-muted );
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.atcfb__group-flag {
+	align-self: flex-start;
+	padding: 1px 6px;
+	border-radius: 999px;
+	background: var( --atcfb-bg-subtle );
+	font-size: 10px;
+	color: var( --atcfb-fg-muted );
+}
+
+/* The palette --------------------------------------------------------------- */
+
+.atcfb__palette-search {
+	inline-size: 100%;
+	box-sizing: border-box;
+	margin-block-end: 10px;
+	padding: 6px 8px;
+	border: 1px solid var( --atcfb-border );
+	border-radius: var( --atcfb-radius );
+}
+
+.atcfb__palette-heading {
+	margin: 12px 0 4px;
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfb__palette-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	inline-size: 100%;
+	padding: 6px 8px;
+	border: 1px solid transparent;
+	border-radius: var( --atcfb-radius );
+	background: transparent;
+	text-align: start;
+	cursor: grab;
+	color: inherit;
+	font-size: 13px;
+}
+
+.atcfb__palette-item:hover,
+.atcfb__palette-item:focus-visible {
+	border-color: var( --atcfb-border );
+	background: var( --atcfb-bg-subtle );
+}
+
+/* The canvas ---------------------------------------------------------------- */
+
+.atcfb__cards {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	position: relative;
+	z-index: 1;
+}
+
+.atcfb__cards.is-drop-target {
+	outline: 2px dashed var( --atcfb-accent );
+	outline-offset: 8px;
+	border-radius: var( --atcfb-radius );
+}
+
+.atcfb__card {
+	border: 1px solid var( --atcfb-border );
+	border-radius: var( --atcfb-radius );
+	background: var( --atcfb-bg );
+	padding: 10px 12px;
+	cursor: grab;
+}
+
+.atcfb__card:focus-visible {
+	outline: 2px solid var( --atcfb-accent );
+	outline-offset: 2px;
+}
+
+.atcfb__card.is-selected {
+	border-color: var( --atcfb-accent );
+	box-shadow: 0 0 0 1px var( --atcfb-accent );
+}
+
+.atcfb__card-main {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.atcfb__card-text {
+	display: flex;
+	flex-direction: column;
+	min-inline-size: 0;
+}
+
+.atcfb__card-label {
+	font-weight: 600;
+}
+
+.atcfb__card-meta {
+	font-size: 11px;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfb__card-actions {
+	display: flex;
+	gap: 4px;
+	margin-inline-start: auto;
+	opacity: 0;
+}
+
+.atcfb__card:hover .atcfb__card-actions,
+.atcfb__card:focus-within .atcfb__card-actions {
+	opacity: 1;
+}
+
+.atcfb__card-action--danger {
+	color: var( --atcfb-danger );
+}
+
+
+/* The condition chips ------------------------------------------------------- */
+
+.atcfb__card-condition {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px;
+	margin-block-start: 8px;
+	padding-block-start: 8px;
+	border-block-start: 1px dashed var( --atcfb-border );
+}
+
+.atcfb__chip {
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var( --atcfb-bg-subtle );
+	font-size: 11px;
+	border: 0;
+	color: inherit;
+}
+
+.atcfb__chip--kind {
+	background: transparent;
+	color: var( --atcfb-fg-muted );
+	letter-spacing: 0.06em;
+	font-size: 10px;
+	padding-inline: 0 4px;
+}
+
+.atcfb__chip--field {
+	background: var( --atcfb-accent );
+	color: #fff;
+	cursor: pointer;
+}
+
+.atcfb__chip--broken {
+	background: var( --atcfb-danger );
+}
+
+.atcfb__chip--op {
+	background: transparent;
+	color: var( --atcfb-fg-muted );
+	font-style: italic;
+}
+
+/* The logic map ------------------------------------------------------------- */
+
+.atcfb__map {
+	position: absolute;
+	inset-block-start: 0;
+	inset-inline-start: 0;
+	pointer-events: none;
+	/* Clipped rather than visible. The curves are drawn inside the canvas's own
+	   left padding, and clipping is what stops a future miscalculation hanging a
+	   squiggle outside the pane where it reads as a rendering bug. */
+	overflow: hidden;
+	z-index: 0;
+}
+
+.atcfb__edge {
+	fill: none;
+	stroke: var( --atcfb-accent );
+	stroke-width: 1.5;
+	opacity: 0.55;
+	transition: opacity 0.15s ease;
+}
+
+.atcfb__edge--formula {
+	stroke-dasharray: 4 3;
+}
+
+.atcfb__edge-label {
+	fill: var( --atcfb-fg-muted );
+	font-size: 10px;
+	text-anchor: middle;
+	dominant-baseline: middle;
+	paint-order: stroke;
+	stroke: var( --atcfb-bg );
+	stroke-width: 3px;
+	transition: opacity 0.15s ease;
+}
+
+.atcfb__map.is-focused .is-dim {
+	opacity: 0.08;
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.atcfb__edge,
+	.atcfb__edge-label {
+		transition: none;
+	}
+}
+
+/* The inspector ------------------------------------------------------------- */
+
+.atcfb__inspector-head {
+	margin-block-end: 10px;
+}
+
+.atcfb__inspector-title {
+	margin: 0;
+	font-size: 15px;
+}
+
+.atcfb__inspector-type {
+	margin: 2px 0 0;
+	font-size: 11px;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfb__inspector-empty {
+	color: var( --atcfb-fg-muted );
+	padding-block-start: 20px;
+	text-align: center;
+}
+
+.atcfb__pane {
+	border-block-start: 1px solid var( --atcfb-border );
+	padding-block: 8px;
+}
+
+.atcfb__pane-title {
+	cursor: pointer;
+	font-weight: 600;
+	font-size: 12px;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var( --atcfb-fg-muted );
+	padding-block: 4px;
+}
+
+.atcfb__row {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-block: 10px;
+}
+
+.atcfb__row-label {
+	font-size: 12px;
+	font-weight: 600;
+}
+
+/*
+ * A switch sits directly in the pane rather than inside a row, because it labels
+ * itself. So it has to pick up the row's vertical rhythm and the row's label
+ * weight by hand, or the settings pane reads as two different forms stacked on
+ * each other — which is exactly what it looked like.
+ */
+.atcfb__pane > .atcf-toggle,
+.atcfb__pane > os-switch {
+	display: flex;
+	margin-block: 12px;
+}
+
+.atcfb__pane > .atcf-toggle .atcf-toggle__label {
+	font-size: 12px;
+	font-weight: 600;
+}
+
+.atcfb__row-hint {
+	margin: 0;
+	font-size: 11px;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfb__row input,
+.atcfb__row select,
+.atcfb__row textarea,
+.atcfb__rule input,
+.atcfb__rule select {
+	inline-size: 100%;
+	box-sizing: border-box;
+	padding: 5px 8px;
+	border: 1px solid var( --atcfb-border );
+	border-radius: var( --atcfb-radius );
+	background: var( --atcfb-bg );
+	color: inherit;
+	font-size: 13px;
+}
+
+.atcfb__multiselect {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	max-block-size: 180px;
+	overflow-y: auto;
+	padding: 6px;
+	border: 1px solid var( --atcfb-border );
+	border-radius: var( --atcfb-radius );
+}
+
+.atcfb__multiselect-item {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+}
+
+.atcfb__choice {
+	display: grid;
+	grid-template-columns: 1fr 1fr auto;
+	gap: 4px;
+	margin-block-end: 4px;
+}
+
+.atcfb__choice-remove,
+.atcfb__rule-remove {
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+	color: var( --atcfb-fg-muted );
+	font-size: 15px;
+	line-height: 1;
+}
+
+.atcfb__rule {
+	display: grid;
+	grid-template-columns: 1fr 1fr 1fr auto;
+	gap: 4px;
+	margin-block-end: 6px;
+	align-items: center;
+}
+
+/*
+ * The formula box.
+ *
+ * One border, drawn here, on a plain `<div contenteditable>`. It used to be an
+ * `<os-textarea>` wearing a `border` of ours as well — and a component draws its
+ * own frame inside its shadow root, so the two stacked and the box had a double
+ * outline. A component's chrome is the component's business; a consumer adding
+ * a border to one is always going to double it.
+ */
+.atcfb__formula {
+	inline-size: 100%;
+	min-block-size: 62px;
+	box-sizing: border-box;
+	padding: 7px 8px;
+	font-family: Menlo, Consolas, monaco, monospace;
+	font-size: 12px;
+	line-height: 1.9;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	border: 1px solid var( --atcfb-border );
+	border-radius: var( --atcfb-radius );
+	background: var( --atcfb-bg );
+	cursor: text;
+}
+
+.atcfb__formula:focus {
+	outline: none;
+	border-color: var( --atcfb-accent );
+}
+
+/* An empty `contenteditable` has no placeholder of its own. */
+.atcfb__formula:empty::before {
+	content: attr( data-placeholder );
+	color: var( --atcfb-fg-muted );
+	pointer-events: none;
+}
+
+/*
+ * A token inside the box.
+ *
+ * `contenteditable: false` on the element itself is what makes the caret step
+ * over a chip whole; these rules only have to make it *look* like one thing.
+ */
+.atcfb__token {
+	border-radius: 4px;
+	padding: 1px 3px;
+	white-space: nowrap;
+}
+
+.atcfb__token--field {
+	background: color-mix( in srgb, var( --atcfb-accent ) 16%, transparent );
+	color: var( --atcfb-accent );
+	font-weight: 600;
+}
+
+.atcfb__token--function {
+	background: color-mix( in srgb, var( --atcfb-fg ) 10%, transparent );
+	font-weight: 600;
+}
+
+/*
+ * A name the engine cannot resolve.
+ *
+ * Underlined as well as coloured. A red chip on a red-green colourblind screen
+ * is a chip, and the whole point of this state is that it is noticed.
+ */
+.atcfb__token.is-unknown {
+	background: color-mix( in srgb, var( --atcfb-danger, #d63638 ) 14%, transparent );
+	color: var( --atcfb-danger, #d63638 );
+	text-decoration: underline wavy;
+	text-underline-offset: 3px;
+}
+
+.atcfb__formula-problem {
+	margin: 6px 0 0;
+	font-size: 11px;
+	line-height: 1.5;
+	color: var( --atcfb-danger, #d63638 );
+}
+
+.atcfb__formula-problem:not( .is-shown ) {
+	display: none;
+}
+
+.atcfb__formula-palette {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px;
+	margin-block: 8px 4px;
+}
+
+.atcfb__formula-legend {
+	inline-size: 100%;
+	margin-block-start: 4px;
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfb__formula-legend:first-child {
+	margin-block-start: 0;
+}
+
+.atcfb__chip--field,
+.atcfb__chip--fn {
+	cursor: pointer;
+	padding: 2px 7px;
+	border-radius: 999px;
+	border: 1px solid var( --atcfb-border );
+	background: var( --atcfb-bg-subtle );
+	font-family: Menlo, Consolas, monaco, monospace;
+	font-size: 11px;
+	color: var( --atcfb-fg );
+}
+
+.atcfb__chip--field {
+	color: var( --atcfb-accent );
+	border-color: color-mix( in srgb, var( --atcfb-accent ) 40%, var( --atcfb-border ) );
+}
+
+.atcfb__chip--field:hover,
+.atcfb__chip--fn:hover {
+	border-color: var( --atcfb-accent );
+}
+
+.atcfb__formula-help,
+.atcfb__key {
+	font-size: 11px;
+	color: var( --atcfb-fg-muted );
+	font-family: Menlo, Consolas, monaco, monospace;
+}
+
+/* Location ------------------------------------------------------------------ */
+
+.atcfb__pane-heading {
+	margin: 0 0 12px;
+	font-size: 15px;
+}
+
+.atcfb__clause {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 6px;
+	padding: 10px;
+	border: 1px solid var( --atcfb-border );
+	border-radius: var( --atcfb-radius );
+	background: var( --atcfb-bg-subtle );
+}
+
+.atcfb__clause-and,
+.atcfb__location-or {
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfb__location-or {
+	margin: 8px 0;
+	text-align: center;
+}
+
+.atcfb__rule--location {
+	display: grid;
+	grid-template-columns: minmax( 140px, 1fr ) 80px minmax( 140px, 1fr ) auto;
+	gap: 4px;
+	inline-size: 100%;
+}
+
+/* Settings ------------------------------------------------------------------ */
+
+.atcfb__settings {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	max-inline-size: 560px;
+}
+
+.atcfb__settings-heading {
+	margin: 18px 0 4px;
+	font-size: 13px;
+}
+
+.atcfb__settings-note {
+	margin: 0;
+	font-size: 12px;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfb__delete {
+	align-self: flex-start;
+	color: var( --atcfb-danger );
+}
+
+.atcfb__empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px;
+	padding: 60px 20px;
+	border: 2px dashed var( --atcfb-border );
+	border-radius: var( --atcfb-radius );
+	color: var( --atcfb-fg-muted );
+	text-align: center;
+}
+
+/*
+ * The state everybody lands in first, on a site that has never had a field
+ * group. It used to be a blank pane beside a palette that appeared to work —
+ * so this one is deliberately loud, and carries the action rather than
+ * describing it.
+ */
+/*
+ * The starter picker.
+ *
+ * Shown where the canvas would be, which is deliberate — it is not a modal over
+ * the builder, it *is* what the builder has to show until there is something to
+ * draw. The cards sit in an auto-fit grid so the same markup is three across in
+ * a maximised window and one across in a narrow one, without a breakpoint.
+ */
+.atcfb__starters {
+	max-inline-size: 900px;
+	margin: 32px auto;
+	padding: 0 24px 32px;
+}
+
+.atcfb__starters-head {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	text-align: center;
+	margin-block-end: 26px;
+}
+
+.atcfb__starters-head .dashicons {
+	font-size: 30px;
+	inline-size: 30px;
+	block-size: 30px;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfb__starters-head h2 {
+	margin: 0;
+	font-size: 16px;
+	color: var( --atcfb-fg );
+}
+
+.atcfb__starters-head p {
+	margin: 0;
+	max-inline-size: 54ch;
+	line-height: 1.6;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfb__starter-cards {
+	display: grid;
+	grid-template-columns: repeat( auto-fit, minmax( 230px, 1fr ) );
+	gap: 14px;
+}
+
+.atcfb__starter {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 7px;
+	padding: 18px;
+	text-align: start;
+	font: inherit;
+	color: inherit;
+	cursor: pointer;
+	border: 1px solid var( --atcfb-border );
+	border-radius: 10px;
+	background: var( --atcfb-bg-subtle );
+	transition: border-color 0.12s ease, transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.atcfb__starter:hover,
+.atcfb__starter:focus-visible {
+	border-color: var( --atcfb-accent );
+	transform: translateY( -2px );
+	box-shadow: 0 6px 18px rgb( 0 0 0 / 0.12 );
+}
+
+.atcfb__starter .dashicons {
+	font-size: 24px;
+	inline-size: 24px;
+	block-size: 24px;
+	color: var( --atcfb-accent );
+}
+
+.atcfb__starter-title {
+	font-size: 14px;
+	font-weight: 600;
+	color: var( --atcfb-fg );
+}
+
+.atcfb__starter-text {
+	font-size: 12px;
+	line-height: 1.55;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfb__starter-teaches {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-block-start: 2px;
+}
+
+/*
+ * What the template teaches, not what it contains. A newcomer choosing between
+ * three cards is not choosing a data model — they are choosing which unfamiliar
+ * idea to meet first, and "Repeaters" on the card is the only place that is said.
+ */
+.atcfb__starter-chip {
+	padding: 2px 7px;
+	font-size: 10px;
+	letter-spacing: 0.02em;
+	border-radius: 999px;
+	border: 1px solid var( --atcfb-border );
+	color: var( --atcfb-fg-muted );
+	background: var( --atcfb-bg );
+}
+
+.atcfb__starter-meta {
+	margin-block-start: auto;
+	padding-block-start: 6px;
+	font-size: 11px;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfb__starters-foot {
+	display: flex;
+	justify-content: center;
+	gap: 8px;
+	margin-block-start: 22px;
+}
+
+
+.atcfb__empty-cta {
+	margin-block-start: 6px;
+}
+
+.atcfb__groups-empty {
+	margin: 4px 2px;
+	font-size: 12px;
+	color: var( --atcfb-fg-muted );
+	line-height: 1.5;
+}
+
+.atcfb__error,
+.atcfk__error,
+.atcft__error {
+	padding: 30px;
+	color: var( --atcfb-danger );
+}
+
+/* The bulk editor ----------------------------------------------------------- */
+
+.atcfk__body {
+	flex: 1 1 auto;
+	overflow: auto;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.atcfk__control {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 12px;
+}
+
+.atcfk__search {
+	margin-inline-start: auto;
+	padding: 5px 8px;
+	border: 1px solid var( --atcfb-border );
+	border-radius: var( --atcfb-radius );
+}
+
+.atcfk__table {
+	inline-size: 100%;
+	border-collapse: collapse;
+	font-size: 13px;
+}
+
+.atcfk__table th,
+.atcfk__table td {
+	border: 1px solid var( --atcfb-border );
+	padding: 0;
+	text-align: start;
+}
+
+.atcfk__table thead th {
+	position: sticky;
+	inset-block-start: 0;
+	z-index: 2;
+	padding: 8px 10px;
+	background: var( --atcfb-bg-subtle );
+	font-size: 12px;
+}
+
+.atcfk__row-head {
+	padding: 6px 10px;
+	max-inline-size: 280px;
+	font-weight: 500;
+}
+
+.atcfk__status {
+	margin-inline-start: 6px;
+	padding: 1px 6px;
+	border-radius: 999px;
+	background: var( --atcfb-bg-subtle );
+	font-size: 10px;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfk__input {
+	inline-size: 100%;
+	box-sizing: border-box;
+	border: 0;
+	padding: 6px 8px;
+	background: transparent;
+	color: inherit;
+	font-size: 13px;
+}
+
+.atcfk__input:focus-visible {
+	outline: 2px solid var( --atcfb-accent );
+	outline-offset: -2px;
+}
+
+.atcfk__cell select {
+	inline-size: 100%;
+	border: 0;
+	background: transparent;
+	padding: 5px 6px;
+}
+
+.atcfk__locked,
+.atcfk__readonly {
+	display: block;
+	padding: 6px 8px;
+	color: var( --atcfb-fg-muted );
+	font-size: 12px;
+}
+
+.atcfk__table tr.is-locked {
+	background: var( --atcfb-bg-subtle );
+}
+
+.atcfk__footer {
+	position: sticky;
+	inset-block-end: 0;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 14px;
+	border-block-start: 1px solid var( --atcfb-border );
+	background: var( --atcfb-bg-subtle );
+}
+
+.atcfk__pending {
+	font-size: 12px;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfk__page {
+	font-variant-numeric: tabular-nums;
+	font-size: 12px;
+}
+
+/* Tools --------------------------------------------------------------------- */
+
+.atcft__body {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	padding: 16px;
+	display: grid;
+	gap: 20px;
+	grid-template-columns: repeat( auto-fit, minmax( 280px, 1fr ) );
+	align-items: start;
+}
+
+.atcft__pane {
+	border: 1px solid var( --atcfb-border );
+	border-radius: var( --atcfb-radius );
+	padding: 14px;
+}
+
+.atcft__pane h2 {
+	margin: 0 0 6px;
+	font-size: 14px;
+}
+
+.atcft__note,
+.atcft__path {
+	margin: 0 0 10px;
+	font-size: 12px;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcft__path {
+	font-family: Menlo, Consolas, monaco, monospace;
+	word-break: break-all;
+}
+
+.atcft__list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	max-block-size: 220px;
+	overflow-y: auto;
+	margin-block-end: 10px;
+}
+
+.atcft__item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 13px;
+}
+
+.atcft__item-meta {
+	margin-inline-start: auto;
+	font-size: 11px;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcft__paste {
+	inline-size: 100%;
+	box-sizing: border-box;
+	margin-block: 8px;
+	font-family: Menlo, Consolas, monaco, monospace;
+	font-size: 12px;
+	border: 1px solid var( --atcfb-border );
+	border-radius: var( --atcfb-radius );
+	padding: 8px;
+}
+
+.atcft__diff ul {
+	margin: 4px 0 10px;
+	padding-inline-start: 18px;
+	font-size: 12px;
+}
+
+/* The preview window -------------------------------------------------------- */
+
+.atcfp__body {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	padding: 16px;
+}
+
+.atcfp__title {
+	font-weight: 600;
+}
+
+.atcfp__sample,
+.atcfp__empty {
+	font-size: 11px;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfp__sample {
+	margin-inline-start: auto;
+}
+
+/* The formula lab ------------------------------------------------------------ */
+
+/*
+ * A dialog of our own rather than `<os-modal>`.
+ *
+ * The kit's modal is the right thing for a modal that belongs to the shell, and
+ * this one has to work identically on a plain admin page where no shell exists —
+ * the builder degrades to `Fields → Field Groups`, and a formula editor that
+ * only opens inside OpenStation would be a feature half the installs never see.
+ * It is forty lines of CSS and one Escape handler.
+ */
+/*
+ * Its own tokens, and this is not belt-and-braces — it is the bug.
+ *
+ * Every `--atcfb-*` name is declared on `.atcfb`, the builder's root. The dialog
+ * mounts on `document.body`, which is **outside** that element, so every
+ * `var( --atcfb-bg )` in here resolved to nothing: the panel had no background
+ * and you could read the builder straight through it, the borders were invisible
+ * and the text was whatever the page behind happened to be. An overlay is the one
+ * piece of a component that does not live inside its own root, and it has to
+ * carry its palette with it.
+ *
+ * Declared on `.atcfl`, which is on the `<os-modal>` in the shell and on the
+ * fallback wrapper without one, so both paths resolve.
+ */
+.atcfl {
+	--atcfb-border: var( --os-ui-border, #dcdcde );
+	--atcfb-fg: var( --os-ui-fg, #1e1e1e );
+	--atcfb-fg-muted: var( --os-ui-fg-muted, #646970 );
+	--atcfb-bg: var( --os-window-bg, #fff );
+	--atcfb-bg-subtle: var( --os-ui-bg-subtle, #f6f7f7 );
+	--atcfb-accent: var( --os-ui-accent, #3858e9 );
+	--atcfb-danger: var( --os-ui-danger, #d63638 );
+	--atcfb-radius: var( --os-ui-radius, 4px );
+
+	color: var( --atcfb-fg );
+}
+
+/* Only the hand-rolled overlay positions itself; `<os-modal>` does its own. */
+.atcfl--own {
+	position: fixed;
+	inset: 0;
+	z-index: 100000;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 24px;
+}
+
+.atcfl--own .atcfl__scrim {
+	position: absolute;
+	inset: 0;
+	background: rgba( 0, 0, 0, 0.45 );
+}
+
+.atcfl--own .atcfl__panel {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	inline-size: min( 940px, 100% );
+	max-block-size: min( 720px, 100% );
+	border: 1px solid var( --atcfb-border );
+	border-radius: 12px;
+	background: var( --atcfb-bg );
+	box-shadow: 0 24px 64px rgba( 0, 0, 0, 0.4 );
+	overflow: hidden;
+}
+
+.atcfl--own .atcfl__head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 14px 16px;
+	border-block-end: 1px solid var( --atcfb-border );
+}
+
+.atcfl--own .atcfl__head h2 {
+	margin: 0;
+	font-size: 14px;
+	margin-inline-end: auto;
+}
+
+.atcfl--own .atcfl__close {
+	border: 0;
+	background: none;
+	font-size: 20px;
+	line-height: 1;
+	cursor: pointer;
+	color: var( --atcfb-fg-muted );
+}
+
+/*
+ * Two columns: the thing you are writing, and the thing you need while writing
+ * it. They collapse to one below 720px, because the reference underneath the
+ * work is still useful and the reference in a 200px column is not.
+ */
+.atcfl__body {
+	display: grid;
+	grid-template-columns: minmax( 0, 1fr ) 300px;
+	gap: 0;
+	overflow: hidden;
+	min-block-size: 0;
+	/*
+	 * A ceiling inside `<os-modal>`, which sizes to its content and would
+	 * otherwise grow past the viewport with eighteen functions expanded. The
+	 * hand-rolled panel caps itself and this is harmless there.
+	 */
+	max-block-size: min( 620px, 80vh );
+}
+
+@media ( max-width: 720px ) {
+	.atcfl__body {
+		grid-template-columns: minmax( 0, 1fr );
+	}
+
+	.atcfl__manual {
+		border-inline-start: 0;
+		border-block-start: 1px solid var( --atcfb-border );
+	}
+}
+
+.atcfl__work,
+.atcfl__manual {
+	padding: 16px;
+	overflow-y: auto;
+	min-block-size: 0;
+	background: var( --atcfb-bg );
+}
+
+.atcfl__manual {
+	border-inline-start: 1px solid var( --atcfb-border );
+	background: var( --atcfb-bg-subtle );
+}
+
+.atcfl__heading {
+	margin: 18px 0 4px;
+	font-size: 12px;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfl__manual .atcfl__heading:first-child {
+	margin-block-start: 0;
+}
+
+.atcfl__lead {
+	margin: 0 0 12px;
+	font-size: 12px;
+	line-height: 1.55;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfl__used {
+	margin: 8px 0 0;
+	font-size: 11px;
+	font-family: Menlo, Consolas, monaco, monospace;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfl__unknown {
+	margin: 6px 0 0;
+	font-size: 11px;
+	color: var( --atcfb-danger, #d63638 );
+}
+
+.atcfl__unknown:not( .is-shown ) {
+	display: none;
+}
+
+.atcfl__samples {
+	display: grid;
+	grid-template-columns: repeat( auto-fit, minmax( 150px, 1fr ) );
+	gap: 8px;
+}
+
+.atcfl__sample[ hidden ] {
+	display: none;
+}
+
+.atcfl__sample {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+.atcfl__sample-name {
+	font-size: 11px;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfl__sample-input {
+	inline-size: 100%;
+	box-sizing: border-box;
+	padding: 5px 7px;
+	border: 1px solid var( --atcfb-border );
+	border-radius: var( --atcfb-radius );
+	background: var( --atcfb-bg );
+	color: var( --atcfb-fg );
+	font-size: 12px;
+}
+
+/*
+ * The answer, given the weight the answer deserves. This is the one number the
+ * dialog exists to show, and a computed field is the only field whose value
+ * nobody can otherwise see until there is a post to see it on.
+ */
+.atcfl__result {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	margin-block-start: 16px;
+	padding: 12px 14px;
+	border: 1px solid var( --atcfb-border );
+	border-radius: var( --atcfb-radius );
+	background: var( --atcfb-bg-subtle );
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfl__answer {
+	margin-inline-start: auto;
+	font-family: Menlo, Consolas, monaco, monospace;
+	font-size: 22px;
+	font-weight: 600;
+	letter-spacing: 0;
+	text-transform: none;
+	color: var( --atcfb-accent );
+}
+
+/* Nothing to show, said as a dash rather than as a zero that could be a result. */
+.atcfl__answer.is-empty {
+	color: var( --atcfb-fg-muted );
+}
+
+/*
+ * The operators, which no list of functions would ever mention.
+ *
+ * They belong above the functions, not below: somebody who does not know that
+ * `==` is how you test equality cannot use `if()` at all, and there is nowhere
+ * else in the product that says so.
+ */
+/*
+ * What a formula can read.
+ *
+ * Above the operators and above the functions, because it answers the question
+ * that comes before either: a list of functions says what each does with its
+ * arguments and nothing about what may *be* an argument, which is the part
+ * nobody can guess.
+ */
+.atcfl__reads {
+	margin: 0 0 14px;
+	display: grid;
+	gap: 2px 0;
+}
+
+.atcfl__reads dt {
+	font-size: 11px;
+	font-weight: 600;
+	color: var( --atcfb-fg );
+	margin-block-start: 6px;
+}
+
+.atcfl__reads dd {
+	margin: 0;
+	font-size: 11px;
+	line-height: 1.5;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfl__operators {
+	margin: 0 0 8px;
+	display: grid;
+	grid-template-columns: auto minmax( 0, 1fr );
+	gap: 3px 10px;
+	align-items: baseline;
+}
+
+.atcfl__operators dt {
+	font-family: Menlo, Consolas, monaco, monospace;
+	font-size: 11px;
+	font-weight: 600;
+	white-space: nowrap;
+	color: var( --atcfb-fg );
+}
+
+.atcfl__operators dd {
+	margin: 0;
+	font-size: 11px;
+	line-height: 1.45;
+	color: var( --atcfb-fg-muted );
+}
+
+/*
+ * One function, folded away until it is wanted.
+ *
+ * Eighteen functions each with three parameters explained is a lot of text to
+ * scroll past to reach the one you came for. A `<details>` gives the whole list
+ * scannable by signature, and the detail one click away — and it does it with
+ * the browser's own disclosure behaviour, which is keyboard-operable and
+ * announced correctly without a line of script.
+ */
+.atcfl__doc {
+	padding-block: 7px;
+	border-block-end: 1px solid var( --atcfb-border );
+}
+
+.atcfl__doc:last-child {
+	border-block-end: 0;
+}
+
+.atcfl__doc-head {
+	cursor: pointer;
+	list-style: none;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.atcfl__doc-head::-webkit-details-marker {
+	display: none;
+}
+
+.atcfl__doc-sig {
+	font-family: Menlo, Consolas, monaco, monospace;
+	font-size: 11px;
+	font-weight: 600;
+	color: var( --atcfb-fg );
+}
+
+.atcfl__doc-what {
+	font-size: 11px;
+	line-height: 1.45;
+	color: var( --atcfb-fg-muted );
+}
+
+/* Each parameter named against what it means. */
+.atcfl__doc-params {
+	margin: 8px 0 0;
+	padding-inline-start: 10px;
+	border-inline-start: 2px solid var( --atcfb-border );
+	display: grid;
+	grid-template-columns: auto minmax( 0, 1fr );
+	gap: 3px 8px;
+	align-items: baseline;
+}
+
+.atcfl__doc-params dt {
+	font-family: Menlo, Consolas, monaco, monospace;
+	font-size: 10px;
+	font-weight: 600;
+	color: var( --atcfb-accent );
+	white-space: nowrap;
+}
+
+.atcfl__doc-params dd {
+	margin: 0;
+	font-size: 11px;
+	line-height: 1.45;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfl__doc-eg {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px 8px;
+	margin-block-start: 8px;
+}
+
+.atcfl__doc-eg code {
+	font-family: Menlo, Consolas, monaco, monospace;
+	font-size: 10px;
+	color: var( --atcfb-accent );
+}
+
+.atcfl__doc-gives {
+	font-size: 10px;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfl__doc-try {
+	margin-inline-start: auto;
+	padding: 1px 8px;
+	border-radius: 999px;
+	border: 1px solid var( --atcfb-border );
+	background: var( --atcfb-bg );
+	color: var( --atcfb-fg );
+	font-size: 10px;
+	cursor: pointer;
+}
+
+.atcfl__doc-try:hover {
+	border-color: var( --atcfb-accent );
+	color: var( --atcfb-accent );
+}
+
+/* The thing that is not obvious until it bites. */
+.atcfl__doc-note {
+	margin: 8px 0 0;
+	padding: 6px 8px;
+	border-radius: 4px;
+	background: var( --atcfb-bg-subtle );
+	font-size: 10px;
+	line-height: 1.5;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfl--own .atcfl__foot {
+	display: flex;
+	gap: 8px;
+	padding: 12px 16px;
+	border-block-start: 1px solid var( --atcfb-border );
+}
+
+.atcfl__save {
+	padding: 6px 14px;
+	border: 1px solid var( --atcfb-accent );
+	border-radius: var( --atcfb-radius );
+	background: var( --atcfb-accent );
+	color: #fff;
+	font-size: 12px;
+	cursor: pointer;
+}
+
+.atcfl__cancel {
+	padding: 6px 12px;
+	border: 1px solid var( --atcfb-border );
+	border-radius: var( --atcfb-radius );
+	background: var( --atcfb-bg );
+	color: var( --atcfb-fg );
+	font-size: 12px;
+	cursor: pointer;
+}
+
+/*
+ * The line under the palette that explains whatever is being pointed at.
+ *
+ * `min-block-size` rather than hiding when empty: a hint that appears and
+ * disappears reflows the panel under it, and everything below jumps every time
+ * the pointer crosses a chip.
+ */
+.atcfb__formula-hint {
+	margin: 2px 0 0;
+	min-block-size: 2.6em;
+	font-size: 11px;
+	line-height: 1.4;
+	color: var( --atcfb-fg-muted );
+	font-family: Menlo, Consolas, monaco, monospace;
+}
+
+.atcfb__formula-expand {
+	margin-inline-start: auto;
+	padding: 2px 9px;
+	border-radius: 999px;
+	border: 1px solid var( --atcfb-accent );
+	background: none;
+	color: var( --atcfb-accent );
+	font-size: 11px;
+	cursor: pointer;
+}
+
+/* The formula window --------------------------------------------------------- */
+
+/*
+ * A native OpenStation window, so it draws no chrome of its own — no scrim, no
+ * panel, no title bar, no close button. The shell owns all of that, and a window
+ * that painted its own frame inside the shell's would be the double border all
+ * over again.
+ *
+ * What is left is the layout: two columns that collapse to one, and a footer
+ * pinned to the bottom.
+ */
+.atcflw {
+	display: flex;
+	flex-direction: column;
+	block-size: 100%;
+	min-block-size: 0;
+	color: var( --atcfb-fg );
+	background: var( --atcfb-bg );
+}
+
+.atcflw__waiting {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 1 1 auto;
+	color: var( --atcfb-fg-muted );
+	font-size: 12px;
+}
+
+/*
+ * `@container`, not `@media`. A window 500px wide on a 2560px screen has to lay
+ * itself out as a narrow thing, and a media query would ask the wrong question
+ * and get the wrong answer.
+ */
+.atcflw__panes {
+	container-type: inline-size;
+	display: grid;
+	grid-template-columns: minmax( 0, 1fr ) 300px;
+	flex: 1 1 auto;
+	min-block-size: 0;
+	overflow: hidden;
+}
+
+@container ( max-width: 660px ) {
+	.atcflw__panes {
+		grid-template-columns: minmax( 0, 1fr );
+		grid-template-rows: minmax( 0, 1fr ) auto;
+	}
+
+	.atcflw__manual {
+		border-inline-start: 0;
+		border-block-start: 1px solid var( --atcfb-border );
+	}
+}
+
+/*
+ * `.atcflw__work`, not `.atcfl__work`.
+ *
+ * The window's markup is printed by `atcf_formula_template()` and uses the
+ * window's own `atcflw__` prefix; the in-page dialog uses `atcfl__`. These rules
+ * were written against the dialog's names, so the window got no padding, no
+ * scrolling and no divider — every pane ran to the frame.
+ *
+ * One letter, and nothing anywhere reports it: a selector that matches nothing
+ * is not an error in CSS. `tests/phpunit/tests/rest.php` now asserts that every
+ * class the template prints is one this stylesheet actually styles.
+ */
+.atcflw__work,
+.atcflw__manual {
+	padding: 20px;
+	overflow-y: auto;
+	min-block-size: 0;
+}
+
+.atcflw__manual {
+	border-inline-start: 1px solid var( --atcfb-border );
+	background: var( --atcfb-bg-subtle );
+}
+
+.atcflw__title {
+	margin: 0 0 12px;
+	font-size: 15px;
+}
+
+/* Room between the editor and the things underneath it. */
+.atcflw__work > * + * {
+	margin-block-start: 14px;
+}
+
+.atcflw__manual .atcfl__doc {
+	padding-inline: 0;
+}
+
+.atcflw__foot {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 12px 20px;
+	border-block-start: 1px solid var( --atcfb-border );
+}
+
+/*
+ * "Sent to the builder", and then nothing.
+ *
+ * The window deliberately does not close on save — closing would be the modal's
+ * behaviour, and the whole reason this is a window is that it can stay open
+ * while you do the next field. So it has to say what happened, or pressing the
+ * button looks like it did nothing at all.
+ */
+.atcflw__status {
+	margin-inline-end: auto;
+	font-size: 11px;
+	color: var( --atcfb-fg-muted );
+}
+
+/* The field, as it will look, edited where it sits -------------------------- */
+
+/*
+ * `fields.css` is a dependency of this stylesheet, so `.atcf-input`,
+ * `.atcf-field__label`, `.atcf-choice` and the rest are already defined by the
+ * rules the edit screen uses. These rules add only the **editing** layer: where
+ * the caret goes, what an empty value looks like, and how a hover says "you can
+ * change this". None of them may restate anything `fields.css` decides, or the
+ * canvas stops being a preview and starts being an impression of one.
+ */
+.atcfb__preview {
+	margin-block-start: 8px;
+	padding-block-start: 10px;
+	border-block-start: 1px solid var( --atcfb-border );
+}
+
+.atcfb__preview .atcf-field {
+	inline-size: 100%;
+}
+
+/*
+ * The control's box, one line tall.
+ *
+ * The real input's height would be right on an edit screen and wrong here: a
+ * card is a glance at a field, and thirteen full-height inputs make a canvas
+ * nobody can scan. `1lh` is the smallest a box can be and still be a box.
+ */
+.atcfb__preview-box {
+	display: block;
+	inline-size: 100%;
+	min-block-size: 1lh;
+	cursor: text;
+}
+
+.atcfb__preview-box--tall {
+	min-block-size: 3lh;
+}
+
+/*
+ * Anything editable in place. Invisible until pointed at, because a canvas of
+ * twelve outlined boxes reads as a form full of errors.
+ */
+.atcfb__editable {
+	display: inline-block;
+	min-inline-size: 2ch;
+	border-radius: 3px;
+	outline: 1px solid transparent;
+	outline-offset: 1px;
+	cursor: text;
+	transition: outline-color 0.12s ease, background-color 0.12s ease;
+}
+
+.atcfb__editable:hover {
+	outline-color: var( --atcfb-border );
+}
+
+.atcfb__editable:focus {
+	outline: 1px solid var( --atcfb-accent );
+	background: var( --atcfb-bg-subtle );
+}
+
+/* An empty one has to say what it is for, or it is an invisible target. */
+.atcfb__editable:empty::before {
+	content: attr( data-placeholder );
+	opacity: 0.55;
+	font-style: italic;
+}
+
+/* An empty hint stays out of the way until somebody looks for it. */
+.atcfb__preview .atcf-field__hint:has( .atcfb__editable:empty ) {
+	opacity: 0;
+	transition: opacity 0.12s ease;
+}
+
+.atcfb__preview:hover .atcf-field__hint,
+.atcfb__preview .atcf-field__hint:focus-within {
+	opacity: 1;
+}
+
+/* The dropdown's chevron, on the wrapper so the box stays a plain editable area. */
+.atcfb__preview-select {
+	position: relative;
+}
+
+.atcfb__preview-select::after {
+	content: '';
+	position: absolute;
+	inset-inline-end: 12px;
+	inset-block-start: 50%;
+	inline-size: 7px;
+	block-size: 7px;
+	border-inline-end: 2px solid currentColor;
+	border-block-end: 2px solid currentColor;
+	transform: translateY( -70% ) rotate( 45deg );
+	opacity: 0.5;
+	pointer-events: none;
+}
+
+.atcfb__preview-search::before {
+	content: '⌕';
+	margin-inline-end: 6px;
+	opacity: 0.6;
+}
+
+/* One option: its tick, its name, and a × that appears when you point at it. */
+.atcfb__preview-option {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.atcfb__preview-tick {
+	flex: 0 0 auto;
+	inline-size: 13px;
+	block-size: 13px;
+	border: 1px solid var( --atcfb-border );
+	border-radius: 50%;
+	background: var( --atcfb-bg );
+}
+
+.atcf-choices--buttons .atcfb__preview-tick {
+	display: none;
+}
+
+/*
+ * Revealed on hover rather than sitting there: a column of × buttons beside
+ * every option is a canvas that looks like it is asking to be dismantled.
+ */
+.atcfb__preview-remove {
+	margin-inline-start: auto;
+	padding: 0 6px;
+	border: 0;
+	border-radius: 4px;
+	background: none;
+	color: var( --atcfb-fg-muted );
+	font-size: 15px;
+	line-height: 1;
+	cursor: pointer;
+	opacity: 0;
+	transition: opacity 0.12s ease, color 0.12s ease;
+}
+
+.atcfb__preview-option:hover .atcfb__preview-remove,
+.atcfb__preview-remove:focus-visible {
+	opacity: 1;
+}
+
+.atcfb__preview-remove:hover,
+.atcfb__preview-remove:focus-visible {
+	color: var( --atcfb-danger, #d63638 );
+}
+
+.atcfb__preview-addoption {
+	align-self: flex-start;
+	margin-block-start: 2px;
+	padding: 2px 6px;
+	border: 0;
+	border-radius: 4px;
+	background: none;
+	color: var( --atcfb-accent );
+	font: inherit;
+	font-size: 11px;
+	cursor: pointer;
+}
+
+.atcfb__preview-addoption:hover,
+.atcfb__preview-addoption:focus-visible {
+	background: var( --atcfb-bg-subtle );
+}
+
+.atcfb__preview-more {
+	font-size: 11px;
+	font-style: italic;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfb__preview-range {
+	block-size: 4px;
+	border-radius: 999px;
+	background: var( --atcfb-border );
+	position: relative;
+	margin-block: 8px;
+}
+
+.atcfb__preview-range::after {
+	content: '';
+	position: absolute;
+	inset-block-start: -5px;
+	inset-inline-start: 40%;
+	inline-size: 14px;
+	block-size: 14px;
+	border-radius: 50%;
+	background: var( --atcfb-accent );
+}
+
+.atcfb__preview-colour {
+	inline-size: 52px;
+	block-size: 22px;
+	border-radius: 4px;
+	border: 1px solid var( --atcfb-border );
+}
+
+/* A drop target, drawn as one — dashes are what "put something here" looks like. */
+.atcfb__preview-drop {
+	min-block-size: 40px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: 1px dashed var( --atcfb-border );
+	border-radius: var( --atcfb-radius );
+	font-size: 11px;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfb__preview-rows {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.atcfb__preview-row {
+	block-size: 18px;
+	border: 1px solid var( --atcfb-border );
+	border-radius: 4px;
+	background: var( --atcfb-bg-subtle );
+}
+
+.atcfb__preview-add {
+	align-self: flex-start;
+	font-size: 11px;
+	padding: 2px 10px;
+	border-radius: 999px;
+	border: 1px dashed var( --atcfb-border );
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfb__preview-static {
+	font-size: 13px;
+	color: var( --atcfb-fg-muted );
+	line-height: 1.5;
+}
+
+.atcfb__preview-static--tab,
+.atcfb__preview-static--accordion {
+	font-weight: 600;
+	color: var( --atcfb-fg );
+	border-block-end: 1px solid var( --atcfb-border );
+	padding-block-end: 5px;
+}
+
+/*
+ * A computed field is an answer, not a question.
+ *
+ * Drawing it as a text box would say the opposite — that somebody types into it —
+ * which is the single most common misunderstanding about computed fields.
+ */
+.atcfb__preview-computed {
+	display: flex;
+	align-items: baseline;
+	gap: 10px;
+	flex-wrap: wrap;
+	padding: 5px 9px;
+	border-radius: var( --atcfb-radius );
+	background: var( --atcfb-bg-subtle );
+}
+
+.atcfb__preview-computed-value {
+	font-family: Menlo, Consolas, monaco, monospace;
+	font-size: 16px;
+	font-weight: 600;
+	color: var( --atcfb-accent );
+}
+
+.atcfb__preview-formula {
+	font-family: Menlo, Consolas, monaco, monospace;
+	font-size: 11px;
+	color: var( --atcfb-fg-muted );
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	min-inline-size: 0;
+}
+
+/* The card header, now that the label has moved into the preview. */
+.atcfb__card-type {
+	font-size: 11px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfb__card-name {
+	font-family: Menlo, Consolas, monaco, monospace;
+	font-size: 11px;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfb__card-formula {
+	margin-inline-start: auto;
+}
+
+.atcfb__chip--empty {
+	font-style: italic;
+	opacity: 0.7;
+}
+
+/* How wide, drawn as a width ------------------------------------------------- */
+
+/*
+ * `33%` was a fact, not an answer. Reading it required knowing that the edit
+ * screen is a flex row, that widths are per cent of it, and that fields wrap —
+ * at which point you can work out that three of them make a line. The bar says
+ * that without any of it.
+ */
+.atcfb__width {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-block-start: 10px;
+	padding-block-start: 8px;
+	border-block-start: 1px solid var( --atcfb-border );
+	flex-wrap: wrap;
+}
+
+.atcfb__width-legend {
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var( --atcfb-fg-muted );
+	margin-inline-end: 4px;
+}
+
+.atcfb__width-option {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	padding: 5px 8px;
+	border: 1px solid transparent;
+	border-radius: 5px;
+	background: none;
+	cursor: pointer;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfb__width-option:hover {
+	border-color: var( --atcfb-border );
+}
+
+.atcfb__width-option.is-chosen {
+	border-color: var( --atcfb-accent );
+	color: var( --atcfb-accent );
+}
+
+.atcfb__width-option:focus-visible {
+	outline: 2px solid var( --atcfb-accent );
+	outline-offset: 1px;
+}
+
+/* The track is the row; the fill is this field's share of it. */
+.atcfb__width-bar {
+	display: block;
+	inline-size: 44px;
+	block-size: 9px;
+	border-radius: 3px;
+	background: var( --atcfb-border );
+	overflow: hidden;
+}
+
+.atcfb__width-fill {
+	display: block;
+	block-size: 100%;
+	background: currentColor;
+	border-radius: 3px;
+}
+
+/*
+ * Big enough to read. These were 10px, which is smaller than any other text in
+ * the builder — and a fraction is the one glyph that most needs the size, since
+ * ⅓ and ⅔ differ by a single stroke at that scale.
+ */
+.atcfb__width-label {
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1;
+}
+
+/* “Full” is a word, not a glyph, and does not need the same weight of type. */
+.atcfb__width-option:last-of-type .atcfb__width-label {
+	font-size: 11px;
+}
+
+/* A width somebody set by hand that matches none of the six. */
+.atcfb__width-custom {
+	font-size: 11px;
+	font-family: Menlo, Consolas, monaco, monospace;
+	color: var( --atcfb-accent );
+}
+
+/* The meta key, editable in the card header. */
+.atcfb__card-name .atcfb__editable {
+	font-family: inherit;
+}
+
+/* The loading lines ---------------------------------------------------------- */
+
+/*
+ * What each window shows before its first fetch lands.
+ *
+ * They were in the markup and in no stylesheet, so they rendered as unstyled
+ * body text hard against the frame — the first thing anybody sees when they open
+ * a window, and the one screen nobody looks at twice while developing because it
+ * is gone by the time the page settles.
+ *
+ * Found by the guard in `tests/phpunit/tests/rest.php`, which asserts that every
+ * class a template prints is one this file styles.
+ */
+.atcfb__loading,
+.atcfk__loading,
+.atcft__loading {
+	display: block;
+	padding: 24px;
+	font-size: 13px;
+	color: var( --atcfb-fg-muted );
+}
+
+/* The bulk editor's toolbar, the same shape as the builder's. */
+.atcfk__bar {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+	padding: 10px 14px;
+	border-block-end: 1px solid var( --atcfb-border );
+}

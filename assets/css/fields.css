@@ -1,0 +1,947 @@
+/**
+ * The field runtime.
+ *
+ * Every value in here resolves through an OpenStation token with a wp-admin
+ * fallback: `var( --os-ui-fg, #1e1e1e )`. Inside the shell the fields wear the
+ * desktop's palette and follow the user's accent; outside it they look like the
+ * admin they are sitting in. One stylesheet, and the site decides which.
+ *
+ * Logical properties throughout — `margin-inline-start`, never `margin-left` —
+ * because WordPress ships in right-to-left languages and a plugin that only
+ * works in one direction is a plugin that is broken for a fifth of the web.
+ */
+
+.atcf-fields {
+	--atcf-gap: 20px;
+	--atcf-radius: var( --os-ui-radius, 6px );
+	--atcf-border: var( --os-ui-border, #c3c4c7 );
+	--atcf-fg: var( --os-ui-fg, #1e1e1e );
+	--atcf-fg-muted: var( --os-ui-fg-muted, #646970 );
+	--atcf-bg: var( --os-window-bg, #fff );
+	--atcf-accent: var( --os-ui-accent, #3858e9 );
+	--atcf-danger: var( --os-ui-danger, #d63638 );
+
+	display: flex;
+	flex-wrap: wrap;
+	gap: var( --atcf-gap );
+	color: var( --atcf-fg );
+}
+
+/*
+ * A switch and the words beside it.
+ *
+ * There was no rule here at all, which is why every toggle in the builder sat
+ * flush against its own label with the text riding a line above centre: a bare
+ * `<div>` around a custom element and a `<span>` gives you whatever the two
+ * inline boxes happen to agree on, and they never agree.
+ *
+ * `align-items: center` rather than `baseline` on purpose. A switch has no text
+ * in it, so it has no baseline to align to — asking for one lines the label up
+ * with the bottom of the track, which is the half-pixel-off look that reads as
+ * broken without anybody being able to say why.
+ */
+/*
+ * The switch, pinned.
+ *
+ * `<os-switch>` resolves its track and its lit fill through public tokens, which
+ * is the supported way for a consumer to say what a control looks like — the
+ * kit's own words: "a desktop theme can re-point any of them and every control
+ * in the kit changes together."
+ *
+ * We re-point three of them, on our own roots only, and the reason is that a
+ * switch is the one control whose *colour is its state*. The desktop's accent is
+ * a magenta and its holographic palette tints the unlit track; both are good
+ * decisions for a shell, and both make a settings panel of a dozen toggles read
+ * as decoration. Off has to be plainly, boringly off — a grey groove — or there
+ * is no visual difference left for on to be.
+ *
+ * Declared here rather than in each stylesheet because custom properties
+ * inherit through shadow roots: set on an ancestor, every `<os-switch>` inside
+ * picks them up without a single rule reaching into the component.
+ */
+.atcf-fields,
+.atcfb,
+.atcfk,
+.atcft,
+.atcfp,
+.atcfm,
+.atcfw {
+	/* The unlit groove. Neutral on both a light and a dark surface. */
+	--os-ui-holo-track: rgba( 127, 127, 127, 0.32 );
+	/* Its boundary. WCAG 1.4.11 wants the control's edge visible at 3:1. */
+	--os-ui-holo-track-edge: rgba( 127, 127, 127, 0.55 );
+
+	/*
+	 * Working around a specificity inversion in `<os-switch>`. See
+	 * BUG-os-switch-off-state-holo-fill.md.
+	 *
+	 * The component renders its track as `<button class="os-holo-fill">` with
+	 * the class applied unconditionally, and then tries to reset it with a bare
+	 * `button { background-image: none }`. A class beats an element selector
+	 * whatever the source order, so the mesh paints on the **unchecked** track —
+	 * while `:host([checked]) button` is specific enough to win, which is why the
+	 * bug reads backwards: off is iridescent and on is flat.
+	 *
+	 * Re-pointing `--os-ui-holo-track` alone cannot fix it, because the same
+	 * offending rule also sets `background-color: transparent`. So the mesh
+	 * itself is re-pointed to a flat grey — a "gradient" of one colour — which is
+	 * what the off track was always meant to be. Nothing of ours asks for a mesh:
+	 * every switch here is `tone="success"`.
+	 *
+	 * Delete this block when the component stops applying the class while off.
+	 */
+	--os-ui-holo-fill: linear-gradient(
+		rgba( 127, 127, 127, 0.32 ),
+		rgba( 127, 127, 127, 0.32 )
+	);
+}
+
+/*
+ * The knob, against a grey groove rather than against a mesh.
+ *
+ * The component gives the knob a heavy ring because it has to survive sitting on
+ * Holomesh's white glow, where a white knob measures 1.01:1 and is simply gone.
+ * On this groove that ring is doing nothing but making the knob look smudged.
+ */
+.atcf-fields os-switch,
+.atcfb os-switch,
+.atcfm os-switch,
+.atcfw os-switch {
+	--os-ui-holo-glow: none;
+}
+
+.atcf-toggle {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	min-block-size: 28px;
+	cursor: pointer;
+	color: var( --atcf-fg, inherit );
+}
+
+.atcf-toggle__label {
+	font-size: 13px;
+	line-height: 1.3;
+	user-select: none;
+}
+
+/*
+ * The switch itself never shrinks. Without this a long label — "Allow no
+ * selection" in a narrow inspector — squeezes the track into an oval and the
+ * knob overflows it.
+ */
+.atcf-toggle > :first-child {
+	flex: 0 0 auto;
+}
+
+.atcf-toggle input[type="checkbox"] {
+	margin: 0;
+}
+
+.atcf-field {
+	/* The width a field declares, minus its share of the gap, so two 50% fields
+	   sit side by side with the gap between them rather than wrapping. */
+	flex: 0 0 calc( var( --atcf-width, 100% ) - var( --atcf-gap ) * ( 1 - var( --atcf-width, 100% ) / 100% ) );
+	min-width: 0;
+	max-width: 100%;
+}
+
+.atcf-field--hidden {
+	display: none;
+}
+
+.atcf-field__header {
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+	margin-block-end: 6px;
+}
+
+.atcf-field__label {
+	font-weight: 600;
+	font-size: 13px;
+	line-height: 1.4;
+}
+
+.atcf-field__required {
+	color: var( --atcf-danger );
+}
+
+.atcf-field__hint {
+	margin-block: 6px 0;
+	font-size: 12px;
+	color: var( --atcf-fg-muted );
+}
+
+.atcf-field__error {
+	margin-block: 6px 0;
+	font-size: 12px;
+	color: var( --atcf-danger );
+	min-height: 0;
+}
+
+.atcf-field__error:empty {
+	display: none;
+}
+
+/*
+ * The drop states.
+ *
+ * An outline rather than a border, because a border changes the element's size
+ * and the whole field jumps by two pixels the moment a drag enters it — which
+ * reads as the layout breaking rather than as the field accepting.
+ */
+.atcf-field--drop-target {
+	outline: 2px dashed var( --atcf-accent );
+	outline-offset: 4px;
+	border-radius: var( --atcf-radius );
+}
+
+.atcf-field--dropped {
+	animation: atcf-flash 0.7s ease-out;
+}
+
+@keyframes atcf-flash {
+	from {
+		box-shadow: 0 0 0 4px var( --atcf-accent );
+	}
+
+	to {
+		box-shadow: 0 0 0 4px transparent;
+	}
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.atcf-field--dropped {
+		animation: none;
+		outline: 2px solid var( --atcf-accent );
+		outline-offset: 4px;
+	}
+}
+
+/* Inputs -------------------------------------------------------------------- */
+
+.atcf-input {
+	inline-size: 100%;
+	box-sizing: border-box;
+	padding: 6px 10px;
+	border: 1px solid var( --atcf-border );
+	border-radius: var( --atcf-radius );
+	background: var( --atcf-bg );
+	color: var( --atcf-fg );
+	font-size: 14px;
+	line-height: 1.5;
+}
+
+.atcf-input:focus-visible {
+	outline: 2px solid var( --atcf-accent );
+	outline-offset: 1px;
+	border-color: var( --atcf-accent );
+}
+
+.atcf-input--code {
+	font-family: Menlo, Consolas, monaco, monospace;
+	font-size: 13px;
+	tab-size: 4;
+}
+
+.atcf-affixed {
+	display: flex;
+	align-items: stretch;
+}
+
+.atcf-affix {
+	display: flex;
+	align-items: center;
+	padding-inline: 10px;
+	border: 1px solid var( --atcf-border );
+	background: var( --os-ui-bg-subtle, #f0f0f1 );
+	color: var( --atcf-fg-muted );
+	font-size: 13px;
+}
+
+.atcf-affix--before {
+	border-inline-end: 0;
+	border-start-start-radius: var( --atcf-radius );
+	border-end-start-radius: var( --atcf-radius );
+}
+
+.atcf-affix--after {
+	border-inline-start: 0;
+	border-start-end-radius: var( --atcf-radius );
+	border-end-end-radius: var( --atcf-radius );
+}
+
+.atcf-affixed .atcf-input {
+	border-radius: 0;
+}
+
+.atcf-affixed .atcf-affix--before + .atcf-input {
+	border-start-start-radius: 0;
+	border-end-start-radius: 0;
+}
+
+/* Choices ------------------------------------------------------------------- */
+
+.atcf-choices {
+	display: flex;
+	gap: 8px 16px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+}
+
+.atcf-choices--vertical {
+	flex-direction: column;
+}
+
+.atcf-choices--horizontal {
+	flex-direction: row;
+	flex-wrap: wrap;
+}
+
+.atcf-choice {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font-size: 14px;
+	cursor: pointer;
+}
+
+.atcf-choices--buttons {
+	gap: 0;
+	flex-direction: row;
+	border: 1px solid var( --atcf-border );
+	border-radius: var( --atcf-radius );
+	overflow: hidden;
+	inline-size: fit-content;
+}
+
+.atcf-choices--buttons .atcf-choice {
+	padding: 6px 14px;
+	border-inline-end: 1px solid var( --atcf-border );
+}
+
+.atcf-choices--buttons .atcf-choice:last-child {
+	border-inline-end: 0;
+}
+
+.atcf-choices--buttons input {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.atcf-choices--buttons input:checked + .atcf-choice__label {
+	font-weight: 600;
+	color: var( --atcf-accent );
+}
+
+/*
+ * The focus ring has to come from the hidden input, because that is the element
+ * focus actually lands on. Without this the segmented control is completely
+ * invisible to a keyboard user.
+ */
+.atcf-choices--buttons input:focus-visible + .atcf-choice__label {
+	outline: 2px solid var( --atcf-accent );
+	outline-offset: 2px;
+}
+
+/* Switch -------------------------------------------------------------------- */
+
+.atcf-switch {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
+	cursor: pointer;
+}
+
+.atcf-switch input {
+	inline-size: 40px;
+	block-size: 22px;
+	margin: 0;
+}
+
+/* Range --------------------------------------------------------------------- */
+
+.atcf-range {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.atcf-range input {
+	flex: 1;
+}
+
+.atcf-range__value {
+	min-inline-size: 3ch;
+	font-variant-numeric: tabular-nums;
+	color: var( --atcf-fg-muted );
+}
+
+/* Media --------------------------------------------------------------------- */
+
+.atcf-media__empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	padding: 24px;
+	border: 2px dashed var( --atcf-border );
+	border-radius: var( --atcf-radius );
+	color: var( --atcf-fg-muted );
+	text-align: center;
+}
+
+.atcf-media__preview {
+	display: flex;
+	gap: 12px;
+	align-items: flex-start;
+}
+
+.atcf-media__image {
+	max-inline-size: 200px;
+	max-block-size: 200px;
+	border-radius: var( --atcf-radius );
+	object-fit: cover;
+	cursor: grab;
+}
+
+.atcf-media__file {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 14px;
+	border: 1px solid var( --atcf-border );
+	border-radius: var( --atcf-radius );
+}
+
+.atcf-media__actions {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.atcf-gallery {
+	display: grid;
+	grid-template-columns: repeat( auto-fill, minmax( 96px, 1fr ) );
+	gap: 10px;
+}
+
+.atcf-gallery__item {
+	position: relative;
+	aspect-ratio: 1;
+	border-radius: var( --atcf-radius );
+	overflow: hidden;
+	background: var( --os-ui-bg-subtle, #f0f0f1 );
+	cursor: grab;
+}
+
+.atcf-gallery__item img {
+	inline-size: 100%;
+	block-size: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+.atcf-gallery__remove {
+	position: absolute;
+	inset-block-start: 4px;
+	inset-inline-end: 4px;
+	inline-size: 22px;
+	block-size: 22px;
+	border: 0;
+	border-radius: 50%;
+	background: rgba( 0, 0, 0, 0.6 );
+	color: #fff;
+	cursor: pointer;
+	line-height: 1;
+}
+
+.atcf-gallery__add {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	aspect-ratio: 1;
+	border: 2px dashed var( --atcf-border );
+	border-radius: var( --atcf-radius );
+	background: transparent;
+	color: var( --atcf-fg-muted );
+	cursor: pointer;
+}
+
+/* Relational ---------------------------------------------------------------- */
+
+.atcf-rel__chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-block-end: 8px;
+}
+
+.atcf-rel__chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 6px 4px 4px;
+	border: 1px solid var( --atcf-border );
+	border-radius: 999px;
+	background: var( --atcf-bg );
+	font-size: 13px;
+	cursor: grab;
+	max-inline-size: 100%;
+}
+
+.atcf-rel__chip--openable {
+	cursor: pointer;
+}
+
+.atcf-rel__thumb {
+	inline-size: 22px;
+	block-size: 22px;
+	border-radius: 50%;
+	object-fit: cover;
+}
+
+.atcf-rel__label {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.atcf-rel__sub {
+	color: var( --atcf-fg-muted );
+	font-size: 11px;
+}
+
+.atcf-rel__remove {
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+	color: var( --atcf-fg-muted );
+	font-size: 15px;
+	line-height: 1;
+	padding: 0 2px;
+}
+
+.atcf-rel__find {
+	position: relative;
+}
+
+.atcf-rel__results {
+	position: absolute;
+	inset-block-start: calc( 100% + 4px );
+	inset-inline: 0;
+	z-index: 20;
+	max-block-size: 280px;
+	overflow-y: auto;
+	border: 1px solid var( --atcf-border );
+	border-radius: var( --atcf-radius );
+	background: var( --atcf-bg );
+	box-shadow: 0 8px 24px rgba( 0, 0, 0, 0.14 );
+}
+
+.atcf-rel__result {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	inline-size: 100%;
+	padding: 8px 10px;
+	border: 0;
+	background: transparent;
+	text-align: start;
+	cursor: pointer;
+	font-size: 13px;
+}
+
+.atcf-rel__result:hover,
+.atcf-rel__result:focus-visible {
+	background: var( --os-ui-bg-subtle, #f0f0f1 );
+}
+
+.atcf-rel__result.is-chosen {
+	opacity: 0.5;
+}
+
+.atcf-rel__result img {
+	inline-size: 24px;
+	block-size: 24px;
+	border-radius: 4px;
+	object-fit: cover;
+}
+
+.atcf-rel__result-sub {
+	margin-inline-start: auto;
+	color: var( --atcf-fg-muted );
+	font-size: 11px;
+}
+
+.atcf-rel__empty,
+.atcf-rel__none {
+	margin: 0;
+	padding: 8px 0;
+	color: var( --atcf-fg-muted );
+	font-size: 13px;
+}
+
+/* Containers ---------------------------------------------------------------- */
+
+.atcf-rows,
+.atcf-group {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.atcf-row {
+	border: 1px solid var( --atcf-border );
+	border-radius: var( --atcf-radius );
+	background: var( --atcf-bg );
+	overflow: hidden;
+}
+
+.atcf-row__bar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 10px;
+	background: var( --os-ui-bg-subtle, #f6f7f7 );
+	border-block-end: 1px solid var( --atcf-border );
+}
+
+.atcf-row__handle {
+	border: 0;
+	background: transparent;
+	cursor: grab;
+	color: var( --atcf-fg-muted );
+	padding: 2px;
+}
+
+.atcf-row__number,
+.atcf-row__layout {
+	font-size: 12px;
+	color: var( --atcf-fg-muted );
+	font-variant-numeric: tabular-nums;
+}
+
+.atcf-row__remove,
+.atcf-row__move {
+	margin-inline-start: auto;
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+	color: var( --atcf-fg-muted );
+	font-size: 15px;
+	line-height: 1;
+}
+
+.atcf-row__move + .atcf-row__move,
+.atcf-row__move + .atcf-row__remove {
+	margin-inline-start: 0;
+}
+
+.atcf-row__body {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	padding: 14px;
+}
+
+.atcf-row--orphan {
+	border-color: var( --atcf-danger );
+}
+
+.atcf-rows__empty,
+.atcf-rows__foot {
+	color: var( --atcf-fg-muted );
+	font-size: 13px;
+}
+
+.atcf-rows__foot {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+.atcf-layouts {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+/* Table --------------------------------------------------------------------- */
+
+.atcf-table {
+	inline-size: 100%;
+	border-collapse: collapse;
+}
+
+.atcf-table th,
+.atcf-table td {
+	border: 1px solid var( --atcf-border );
+	padding: 0;
+}
+
+.atcf-table th {
+	padding: 6px 8px;
+	background: var( --os-ui-bg-subtle, #f6f7f7 );
+	font-size: 12px;
+	text-align: start;
+}
+
+.atcf-table__cell {
+	inline-size: 100%;
+	border: 0;
+	padding: 6px 8px;
+	background: transparent;
+	color: inherit;
+}
+
+.atcf-table__cell:focus-visible {
+	outline: 2px solid var( --atcf-accent );
+	outline-offset: -2px;
+}
+
+/* Colour, icon, location ---------------------------------------------------- */
+
+.atcf-color {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.atcf-color__input {
+	inline-size: 40px;
+	block-size: 32px;
+	padding: 0;
+	border: 1px solid var( --atcf-border );
+	border-radius: var( --atcf-radius );
+	background: none;
+}
+
+.atcf-color__hex {
+	inline-size: 10ch;
+}
+
+.atcf-color__palette {
+	display: flex;
+	gap: 4px;
+}
+
+.atcf-color__swatch {
+	inline-size: 22px;
+	block-size: 22px;
+	border: 1px solid var( --atcf-border );
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+.atcf-color__swatch[ aria-pressed='true' ] {
+	outline: 2px solid var( --atcf-accent );
+	outline-offset: 2px;
+}
+
+.atcf-icon {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.atcf-icon__grid {
+	display: grid;
+	grid-template-columns: repeat( auto-fill, minmax( 34px, 1fr ) );
+	gap: 4px;
+	inline-size: 100%;
+	max-block-size: 160px;
+	overflow-y: auto;
+	padding: 4px;
+	border: 1px solid var( --atcf-border );
+	border-radius: var( --atcf-radius );
+}
+
+.atcf-icon__choice {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	block-size: 30px;
+	border: 0;
+	border-radius: 4px;
+	background: transparent;
+	cursor: pointer;
+}
+
+.atcf-icon__choice[ aria-checked='true' ] {
+	background: var( --atcf-accent );
+	color: #fff;
+}
+
+.atcf-location__row,
+.atcf-location__coords {
+	display: flex;
+	gap: 8px;
+	margin-block-end: 8px;
+}
+
+.atcf-location__frame {
+	inline-size: 100%;
+	block-size: 220px;
+	border: 1px solid var( --atcf-border );
+	border-radius: var( --atcf-radius );
+}
+
+.atcf-location__status {
+	margin: 0 0 8px;
+	font-size: 12px;
+	color: var( --atcf-fg-muted );
+}
+
+.atcf-computed__value {
+	font-size: 20px;
+	font-weight: 600;
+	font-variant-numeric: tabular-nums;
+}
+
+.atcf-computed__note {
+	display: block;
+	font-size: 11px;
+	color: var( --atcf-fg-muted );
+}
+
+.atcf-json__status.is-invalid {
+	color: var( --atcf-danger );
+}
+
+/* Tabs and accordions ------------------------------------------------------- */
+
+.atcf-tabs {
+	display: flex;
+	gap: 2px;
+	flex-basis: 100%;
+	border-block-end: 1px solid var( --atcf-border );
+}
+
+.atcf-tabs__tab {
+	padding: 8px 14px;
+	border: 0;
+	border-block-end: 2px solid transparent;
+	background: transparent;
+	cursor: pointer;
+	font-size: 13px;
+	color: var( --atcf-fg-muted );
+}
+
+.atcf-tabs__tab[ aria-selected='true' ] {
+	color: var( --atcf-fg );
+	border-block-end-color: var( --atcf-accent );
+	font-weight: 600;
+}
+
+.atcf-tabs__panel {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var( --atcf-gap );
+	flex-basis: 100%;
+	padding-block-start: 16px;
+}
+
+.atcf-accordion {
+	flex-basis: 100%;
+	border: 1px solid var( --atcf-border );
+	border-radius: var( --atcf-radius );
+	padding: 10px 14px;
+}
+
+.atcf-accordion__summary {
+	cursor: pointer;
+	font-weight: 600;
+}
+
+/* The drag ghost ------------------------------------------------------------ */
+
+.atcf-drag-ghost {
+	position: fixed;
+	inset-block-start: 0;
+	inset-inline-start: 0;
+	z-index: 100000;
+	pointer-events: none;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 10px;
+	border-radius: var( --os-ui-radius, 6px );
+	background: var( --os-window-bg, #fff );
+	box-shadow: 0 8px 24px rgba( 0, 0, 0, 0.25 );
+	font-size: 13px;
+	opacity: 0.95;
+}
+
+.atcf-drag-ghost--media img {
+	inline-size: 56px;
+	block-size: 56px;
+	object-fit: cover;
+	border-radius: 4px;
+}
+
+.atcf-is-dragging {
+	opacity: 0.4;
+}
+
+/* The unknown-type placeholder ---------------------------------------------- */
+
+.atcf-field--unknown,
+.atcf-field__unknown {
+	padding: 10px 12px;
+	border: 1px dashed var( --atcf-border );
+	border-radius: var( --atcf-radius );
+	color: var( --atcf-fg-muted );
+	font-size: 12px;
+}
+
+/* The Field Inspector widget ------------------------------------------------ */
+
+.atcfw {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 12px;
+	overflow-y: auto;
+	block-size: 100%;
+	box-sizing: border-box;
+}
+
+.atcfw__title {
+	margin: 0;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.atcfw__empty {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	block-size: 100%;
+	text-align: center;
+	color: var( --os-ui-fg-muted, #646970 );
+	font-size: 12px;
+}
+
+.atcfw__fields {
+	--atcf-gap: 12px;
+}
+
+@media ( forced-colors: active ) {
+	.atcf-field--drop-target {
+		outline: 2px dashed CanvasText;
+	}
+
+	.atcf-choices--buttons input:checked + .atcf-choice__label {
+		color: Highlight;
+	}
+}

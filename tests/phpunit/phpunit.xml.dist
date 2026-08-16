@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<phpunit
+	bootstrap="bootstrap.php"
+	backupGlobals="false"
+	colors="true"
+	convertErrorsToExceptions="true"
+	convertNoticesToExceptions="true"
+	convertWarningsToExceptions="true"
+	convertDeprecationsToExceptions="true"
+	beStrictAboutTestsThatDoNotTestAnything="true"
+>
+	<testsuites>
+		<testsuite name="allterrain-fields">
+			<directory suffix=".php">./tests/</directory>
+		</testsuite>
+	</testsuites>
+
+	<groups>
+		<include>
+			<group>allterrain-fields</group>
+		</include>
+	</groups>
+</phpunit>

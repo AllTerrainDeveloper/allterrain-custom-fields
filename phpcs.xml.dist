@@ -1,0 +1,81 @@
+<?xml version="1.0"?>
+<ruleset name="AllTerrain Fields">
+	<description>WordPress Coding Standards for the AllTerrain Fields plugin.</description>
+
+	<file>.</file>
+
+	<exclude-pattern>/node_modules/*</exclude-pattern>
+	<exclude-pattern>/vendor/*</exclude-pattern>
+	<exclude-pattern>/dist/*</exclude-pattern>
+	<exclude-pattern>/assets/*</exclude-pattern>
+	<exclude-pattern>/tests/vitest/*</exclude-pattern>
+
+	<arg name="extensions" value="php"/>
+	<arg name="colors"/>
+	<arg value="sp"/>
+
+	<!--
+	Errors fail the build; warnings are printed and read but do not.
+
+	Every warning left in this tree has been looked at and is deliberate. There
+	are five kinds:
+
+	  * `$object`, `$match` and `$default` as parameter names. The sniff is
+	    right that they are reserved words in some future PHP, and wrong that it
+	    matters here: `atcf_get_field( $selector, $object )` is the argument
+	    order hundreds of thousands of published templates already use, and
+	    renaming it to `$target` would break every named-argument call for a
+	    warning about a language change that has not happened.
+
+	  * Direct `$wpdb` queries, in `uninstall.php` and in the uniqueness check.
+	    The uninstall is bulk-deleting rows that are about to stop existing, so
+	    object caching is meaningless; the uniqueness check is deliberately not a
+	    `WP_Query`, because routing it through the post-query machinery applies
+	    the current type, status and language filters and quietly turns "unique
+	    across the site" into "unique among the posts this query considered".
+
+	  * `file_put_contents()` in the JSON sync. `WP_Filesystem` needs credentials
+	    this code path cannot ask for, and a failed write here is designed to be
+	    silent — a theme directory that is not writable is the correct
+	    configuration on a hardened host and must not turn every field group save
+	    into an error the user cannot act on.
+
+	  * One `unserialize()`, called with `allowed_classes => false`, only on the
+	    field types that actually store an array, and only after `is_serialized()`
+	    agrees. See the comment on `atcf_maybe_unserialize_value()`.
+
+	  * A `meta_key` lookup on the field group post type, which is a table with
+	    one row per field group. The alternative is loading and decoding every
+	    group on the site to answer "do I already have this one?".
+
+	Suppressing each one individually would put a `phpcs:ignore` beside a hundred
+	lines that are already correct, and a file dense with ignores is a file where
+	nobody notices a new one.
+	-->
+	<config name="ignore_warnings_on_exit" value="1"/>
+
+	<rule ref="WordPress"/>
+
+	<config name="testVersion" value="7.4-"/>
+	<rule ref="PHPCompatibilityWP"/>
+
+	<config name="minimum_wp_version" value="6.0"/>
+
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="allterrain-fields"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="atcf_"/>
+				<element value="ATCF_"/>
+				<element value="allterrain_fields"/>
+			</property>
+		</properties>
+	</rule>
+</ruleset>
