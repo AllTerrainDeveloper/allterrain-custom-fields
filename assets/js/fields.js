@@ -1199,7 +1199,10 @@ var allTerrainFields = function(exports) {
     });
     const titleInput = control("os-text-field", "input", {
       class: "atcf-link__title",
-      attrs: { type: "text", placeholder: t("add", "Add"), "aria-label": "Link text" }
+      // Its own string, not the borrowed "Add" that used to sit here — a
+      // placeholder is the only name an optional input gets, and "Add" names
+      // a button, not a box for the words a link shows.
+      attrs: { type: "text", placeholder: t("linkText", "Link text"), "aria-label": "Link text" }
     });
     const targetInput = el("input", { attrs: { type: "checkbox" } });
     urlInput.value = current.url;
@@ -1496,7 +1499,14 @@ var allTerrainFields = function(exports) {
           el("label", {
             class: "atcf-switch",
             attrs: { for: id },
-            children: [input, el("span", { class: "atcf-switch__label", text: String(settings.message ?? "") })]
+            children: [
+              input,
+              // The same track the PHP renderer prints. Without it this
+              // renderer's switches were bare checkboxes wearing the
+              // stylesheet's hit-area sizing — the ugly blue pill.
+              el("span", { class: "atcf-switch__track", attrs: { "aria-hidden": "true" } }),
+              el("span", { class: "atcf-switch__label", text: String(settings.message ?? "") })
+            ]
           })
         );
         return;
