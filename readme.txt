@@ -135,6 +135,16 @@ file. Groups are matched on key, so importing twice updates rather than
 duplicates, and anything that would not convert is reported rather than
 dropped silently.
 
+= Can I migrate from Meta Box? =
+
+Yes — **Fields → Tools → Import from Meta Box** reads definitions from the
+running Meta Box plugin, from the Builder posts it leaves in the database after
+being deactivated, or from a pasted Builder export. Field ids become field
+names, so every simple field's values are already where this plugin looks.
+Groups and cloneable fields are the exception — Meta Box stores those as one
+serialised row — and the import names each one rather than letting you find
+out from an empty repeater.
+
 = What happens to my data if I delete the plugin? =
 
 The field groups go; the values stay. `hero_title` on a hundred posts is content

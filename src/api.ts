@@ -249,6 +249,13 @@ export interface AcfSources {
 	groups: Array< { key: string; title: string; fields: number; source: string; exists: boolean } >;
 }
 
+/** What a Meta Box import could draw from, and the boxes it found. */
+export interface MetaboxSources {
+	/** Whether Meta Box itself is active on the site. */
+	active: boolean;
+	boxes: Array< { id: string; title: string; fields: number; source: string; exists: boolean } >;
+}
+
 /** One imported group, with whatever would not convert. */
 export interface ImportedGroup {
 	id: number;
@@ -273,6 +280,21 @@ export function acfSources(): Promise< AcfSources > {
  */
 export function importAcf( body: { groups?: unknown[]; keys?: string[] } ): Promise< { imported: ImportedGroup[] } > {
 	return request( 'import/acf', { method: 'POST', body: JSON.stringify( body ) }, 'field-group-import' );
+}
+
+/** What there is to import from Meta Box. */
+export function metaboxSources(): Promise< MetaboxSources > {
+	return request< MetaboxSources >( 'import/metabox' );
+}
+
+/**
+ * Imports Meta Box definitions.
+ *
+ * With `boxes` it converts a pasted export; with `ids` it imports that subset
+ * of what the site itself holds; with neither it imports everything detected.
+ */
+export function importMetabox( body: { boxes?: unknown[]; ids?: string[] } ): Promise< { imported: ImportedGroup[] } > {
+	return request( 'import/metabox', { method: 'POST', body: JSON.stringify( body ) }, 'field-group-import' );
 }
 
 /** The rendered preview of a group's edit screen. */

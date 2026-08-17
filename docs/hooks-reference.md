@@ -610,6 +610,49 @@ gated on `atcf_can_manage()`:
   importing twice updates rather than duplicates. The response lists, per
   group, whatever would not convert.
 
+### `atcf_import_metabox_type_map` — Experimental
+
+The Meta-Box-to-AllTerrain field type map the importer translates through. A
+plugin porting a custom Meta Box field type adds its own slug here and the
+importer stops flagging it.
+
+```php
+apply_filters( 'atcf_import_metabox_type_map', array $map );
+```
+
+### `atcf_import_metabox_group` — Experimental
+
+A field group converted from a Meta Box definition, just before it is saved.
+The place to carry a setting the conversion has no opinion about, or to veto a
+box by returning an empty array.
+
+```php
+apply_filters( 'atcf_import_metabox_group', array $group, array $box, array $warnings );
+```
+
+### `atcf_import_metabox_field` — Experimental
+
+The same, per field.
+
+```php
+apply_filters( 'atcf_import_metabox_field', array $field, array $mb, array $warnings );
+```
+
+The importer itself is two REST routes under `allterrain-fields/v1`, both
+gated on `atcf_can_manage()`:
+
+- `GET /import/metabox` — what there is to import from: whether Meta Box is
+  active and a summary of every definition found (the `rwmb_meta_boxes`
+  filter first, the Builder's `meta-box` posts second — the latter survive
+  Meta Box being deactivated).
+- `POST /import/metabox` — imports. A body carrying `boxes` converts a pasted
+  Builder export (or hand-written `rwmb_meta_boxes` arrays); a body carrying
+  `ids` imports that subset of what the site holds; an empty body imports
+  everything detected. Field keys are minted deterministically from the box
+  id and field path, so importing twice updates rather than duplicates. The
+  response lists, per group, everything worth knowing — including which
+  fields' stored values do not share a storage layout and will start fresh.
+
 ---
 
 ## Functions a plugin may call
