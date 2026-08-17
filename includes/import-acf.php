@@ -176,9 +176,9 @@ function atcf_rest_acf_import( $request ) {
 	return rest_ensure_response( array( 'imported' => $results ) );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Finding groups on the site                                                  */
-/* -------------------------------------------------------------------------- */
+/*
+ * Finding groups on the site.
+ */
 
 /**
  * Every ACF group this site holds, as raw ACF-shaped arrays.
@@ -381,9 +381,9 @@ function atcf_acf_unpack( $content ) {
 	return is_array( $data ) ? $data : array();
 }
 
-/* -------------------------------------------------------------------------- */
-/* Conversion                                                                  */
-/* -------------------------------------------------------------------------- */
+/*
+ * Conversion.
+ */
 
 /**
  * Converts one ACF group into this plugin's dialect.
