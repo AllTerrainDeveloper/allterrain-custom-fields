@@ -58,7 +58,7 @@ function atcf_register_group_blocks() {
 		);
 
 		register_block_type(
-			'acf/' . $block['name'],
+			'atcf/' . $block['name'],
 			array(
 				'title'           => '' !== $block['title'] ? $block['title'] : $group['title'],
 				'description'     => $block['description'],
@@ -192,11 +192,11 @@ function atcf_block_template_path( $template ) {
  *
  * @since 0.1.0
  *
- * @param string $name Full block name, e.g. `acf/hero`.
+ * @param string $name Full block name, e.g. `atcf/hero`.
  * @return array|null The group, or null.
  */
 function atcf_group_for_block( $name ) {
-	$slug = str_replace( 'acf/', '', (string) $name );
+	$slug = str_replace( 'atcf/', '', (string) $name );
 
 	foreach ( atcf_get_groups() as $group ) {
 		if ( (string) $group['settings']['block']['name'] === $slug ) {

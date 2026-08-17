@@ -29,7 +29,7 @@ Two ideas carry most of the weight.
 ## One normaliser, and everything downstream trusts it
 
 `atcf_normalize_group()` decides what a field group *is*. The builder posts
-whatever it likes, an import brings whatever ACF wrote five years ago, and
+whatever it likes, an import brings whatever another plugin wrote five years ago, and
 `atcf_register_field_group()` brings a hand-written array — all three arrive at
 the same structure, with every key present and correctly typed.
 
@@ -86,7 +86,7 @@ Two rows per value looks wasteful until you need the second one, and you always
 do: the value row says `42` and nothing else on earth says whether that is a post
 id, an attachment id or the number forty-two.
 
-This is ACF's convention, kept deliberately, and the reasons are all about what
+This convention is kept deliberately, and the reasons are all about what
 *else* keeps working:
 
 - `get_post_meta( $id, 'hero_title', true )` works with no plugin loaded.

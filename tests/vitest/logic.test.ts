@@ -64,7 +64,7 @@ describe( 'operator normalisation', () => {
 		expect( normalizeOperator( 'nonsense' ) ).toBe( 'is' );
 	} );
 
-	it( 'maps the spellings an ACF export uses', () => {
+	it( 'maps the symbolic operator spellings onto ours', () => {
 		expect( normalizeOperator( '==' ) ).toBe( 'is' );
 		expect( normalizeOperator( '!=' ) ).toBe( 'is_not' );
 		expect( normalizeOperator( '>=' ) ).toBe( 'greater_equal' );

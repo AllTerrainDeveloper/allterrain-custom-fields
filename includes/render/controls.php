@@ -1003,11 +1003,11 @@ function atcf_value_for_client( $field, $value ) {
 
 		foreach ( (array) $value as $row ) {
 			$row    = (array) $row;
-			$name   = (string) atcf_arr( $row, 'acf_fc_layout', '' );
+			$name   = (string) atcf_arr( $row, 'atcf_layout', '' );
 			$layout = atcf_flexible_layout( $field, $name );
 			$clean  = atcf_row_for_client( (array) atcf_arr( (array) $layout, 'sub_fields', array() ), $row );
 
-			$clean['acf_fc_layout'] = $name;
+			$clean['atcf_layout'] = $name;
 
 			$rows[] = $clean;
 		}
