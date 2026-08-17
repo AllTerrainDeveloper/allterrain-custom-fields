@@ -11,12 +11,12 @@
  * lags the database is worse than no file. The *read* is not: a file that
  * silently overwrote the database on every page load would make the builder
  * appear to lose changes on any site where the file is stale, which on a shared
- * host with a checked-in `acf-json` directory is most of them. The Tools window
+ * host with a checked-in JSON directory is most of them. The Tools window
  * shows the difference and asks.
  *
- * The directory is `acf-json` in the active theme — the same path ACF uses — so
- * a site migrating in already has its files where this looks, and a site
- * migrating out leaves with them.
+ * The directory is `atcf-json` in the active theme, and the `atcf_json_dir`
+ * filter below moves it anywhere else — including a directory another plugin
+ * left behind, so a migrating site can keep its files where they already are.
  *
  * @package AllTerrain_Fields
  */
@@ -32,7 +32,7 @@ defined( 'ABSPATH' ) || exit;
  *                there is nowhere writable.
  */
 function atcf_json_dir() {
-	$dir = get_stylesheet_directory() . '/acf-json';
+	$dir = get_stylesheet_directory() . '/atcf-json';
 
 	/**
 	 * Filters the directory field group JSON is written to.

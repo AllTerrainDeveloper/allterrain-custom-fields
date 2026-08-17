@@ -14,8 +14,8 @@
  * reason is not technical: a repeater is a list, and a list is the second data
  * structure anyone learns. All four are here.
  *
- * Containers store one row per sub-value, keyed `parent_0_child`. That is ACF's
- * layout and it is genuinely the right one — it means `get_post_meta( $id,
+ * Containers store one row per sub-value, keyed `parent_0_child`. That flat
+ * layout is genuinely the right one — it means `get_post_meta( $id,
  * 'team_0_name', true )` works, a `meta_query` can find "any post whose first
  * team member is Ada", and a repeater with forty rows does not put a 400KB
  * serialized blob in one row where a single edit rewrites all of it.
@@ -280,11 +280,10 @@ function atcf_format_repeater( $value ) {
 /**
  * Formats flexible content.
  *
- * Each row keeps its `acf_fc_layout` key, spelled exactly that way. A theme
- * looping flexible content switches on it, and the entire body of published
- * WordPress tutorial code — every Stack Overflow answer, every agency's internal
- * boilerplate — spells it that way. Renaming it to `atcf_layout` would be tidier
- * and would break every template anybody has ever written.
+ * Each row keeps its layout name under the `atcf_layout` key. A theme looping
+ * flexible content switches on it, and `get_row_layout()` reads it, so the key
+ * is part of the public template contract — treat renaming it as a breaking
+ * change. Imports from other plugins translate their own row keys to this one.
  *
  * @since 0.1.0
  *

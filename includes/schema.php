@@ -5,7 +5,7 @@
  * One function decides what a field group *is* — `atcf_normalize_group()` — and
  * everything else in the plugin is allowed to assume the shape it produces. That
  * is the whole contract: the builder posts whatever it likes, an import brings
- * whatever ACF wrote five years ago, a `atcf_register_field_group()` call from
+ * whatever another plugin wrote five years ago, a `atcf_register_field_group()` call from
  * another plugin brings a hand-written array, and all three arrive at the same
  * structure with every key present and correctly typed.
  *
@@ -211,11 +211,25 @@ function atcf_normalize_field( $field, $taken = array() ) {
 		$name = '' === $name ? $key : $name;
 	}
 
+	if ( atcf_is_reserved_field_name( $name ) ) {
+		// The key is always a safe meta key, and a refused name falling back to
+		// it keeps the field working instead of silently writing into a row
+		// WordPress reads roles and sessions out of.
+		$name = $key;
+	}
+
 	$name = atcf_unique_field_name( $name, $taken );
 
 	$definition = atcf_get_field_type( $type );
 	$defaults   = $definition ? (array) $definition['settings'] : array();
 	$settings   = array_merge( $defaults, (array) atcf_arr( $field, 'settings', array() ) );
+
+	// The one setting that is HTML by design. Everything else is escaped where
+	// it is printed; this one is printed *as* markup, so it is capped at the
+	// `wp_kses_post()` ceiling before it is ever stored.
+	if ( isset( $settings['message'] ) && is_string( $settings['message'] ) ) {
+		$settings['message'] = wp_kses_post( $settings['message'] );
+	}
 
 	// Sub-fields are normalised with their *own* name scope. Two repeaters may
 	// each hold a `title`, because the stored keys are `team_0_title` and
@@ -230,7 +244,11 @@ function atcf_normalize_field( $field, $taken = array() ) {
 		'name'         => $name,
 		'label'        => '' === $label ? $name : $label,
 		'type'         => $type,
-		'instructions' => (string) atcf_arr( $field, 'instructions', '' ),
+		// `wp_kses_post()` on the way in as well as on the way out. The render
+		// path escapes too, but a schema is exported, imported and shipped to
+		// the client as JSON, and defense-in-depth is cheap for a string only
+		// ever meant to hold formatting.
+		'instructions' => wp_kses_post( (string) atcf_arr( $field, 'instructions', '' ) ),
 		'required'     => (bool) atcf_arr( $field, 'required', false ),
 		'readonly'     => (bool) atcf_arr( $field, 'readonly', false ),
 		'wrapper'      => atcf_normalize_wrapper( atcf_arr( $field, 'wrapper', array() ) ),

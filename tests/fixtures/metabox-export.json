@@ -1,0 +1,160 @@
+[
+	{
+		"post_type": "meta-box",
+		"post_title": "Event details",
+		"post_name": "event-details",
+		"post_status": "publish",
+		"meta_box": {
+			"id": "event-details",
+			"title": "Event details",
+			"post_types": [ "event" ],
+			"context": "normal",
+			"priority": "high",
+			"style": "seamless",
+			"fields": [
+				{
+					"id": "event_date",
+					"name": "Date",
+					"type": "date",
+					"desc": "When it happens.",
+					"required": true,
+					"std": "",
+					"js_options": {
+						"dateFormat": "yy-mm-dd"
+					}
+				},
+				{
+					"id": "capacity",
+					"name": "Capacity",
+					"type": "number",
+					"min": 0,
+					"max": 5000,
+					"std": 100
+				},
+				{
+					"id": "kind",
+					"name": "Kind of event",
+					"type": "select",
+					"options": {
+						"concert": "Concert",
+						"talk": "Talk",
+						"workshop": "Workshop"
+					},
+					"std": "talk",
+					"placeholder": "Pick one"
+				},
+				{
+					"id": "is_online",
+					"name": "Happens online",
+					"type": "checkbox",
+					"std": 1,
+					"desc": "No venue needed"
+				},
+				{
+					"id": "venue_url",
+					"name": "Venue link",
+					"type": "url",
+					"visible": {
+						"when": [ [ "is_online", "!=", 1 ], [ "capacity", ">", 0 ] ],
+						"relation": "and"
+					}
+				},
+				{
+					"id": "speakers",
+					"name": "Speakers",
+					"type": "group",
+					"clone": true,
+					"sort_clone": true,
+					"min_clone": 1,
+					"max_clone": 12,
+					"fields": [
+						{
+							"id": "full_name",
+							"name": "Full name",
+							"type": "text"
+						},
+						{
+							"id": "headshot",
+							"name": "Headshot",
+							"type": "single_image"
+						}
+					]
+				},
+				{
+					"id": "sponsor",
+					"name": "Sponsor",
+					"type": "post",
+					"post_type": "sponsor",
+					"field_type": "select_advanced",
+					"multiple": false
+				},
+				{
+					"id": "related_events",
+					"name": "Related events",
+					"type": "post",
+					"post_type": [ "event" ],
+					"multiple": true
+				},
+				{
+					"id": "topics",
+					"name": "Topics",
+					"type": "taxonomy",
+					"taxonomy": "event_topic",
+					"field_type": "checkbox_list"
+				},
+				{
+					"id": "organiser",
+					"name": "Organiser",
+					"type": "user",
+					"query_args": {
+						"role__in": [ "editor" ]
+					}
+				},
+				{
+					"id": "ticket_note",
+					"name": "Ticket note",
+					"type": "text",
+					"clone": true,
+					"max_clone": 3
+				},
+				{
+					"id": "gallery_shots",
+					"name": "Gallery",
+					"type": "image_advanced",
+					"max_file_uploads": 8
+				},
+				{
+					"id": "",
+					"name": "Logistics",
+					"type": "heading"
+				},
+				{
+					"id": "seating_chart",
+					"name": "Seating chart",
+					"type": "slider_field",
+					"std": 3
+				}
+			]
+		}
+	},
+	{
+		"post_type": "meta-box",
+		"post_title": "Topic colour",
+		"post_name": "topic-colour",
+		"post_status": "publish",
+		"meta_box": {
+			"id": "topic-colour",
+			"title": "Topic colour",
+			"object_type": "term",
+			"taxonomies": [ "event_topic" ],
+			"fields": [
+				{
+					"id": "swatch",
+					"name": "Swatch",
+					"type": "color",
+					"std": "#336699"
+				}
+			]
+		}
+	}
+]

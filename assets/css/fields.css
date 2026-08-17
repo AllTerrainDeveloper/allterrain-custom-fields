@@ -349,17 +349,113 @@
 
 /* Switch -------------------------------------------------------------------- */
 
+/*
+ * A real switch: the checkbox stays in the tree for the keyboard, the screen
+ * reader and the form submission, and the track span is what eyes see. The
+ * two are kept in step entirely by `:checked +` — no JavaScript owns this.
+ */
 .atcf-switch {
+	position: relative;
 	display: inline-flex;
 	align-items: center;
 	gap: 10px;
 	cursor: pointer;
 }
 
+/*
+ * Visually hidden, not `display: none` — a checkbox that leaves the tree
+ * takes its keyboard focus and its submit value with it. Stretched over the
+ * track so the click target is the thing that looks clickable.
+ */
 .atcf-switch input {
+	position: absolute;
+	inset-inline-start: 0;
+	inset-block-start: 0;
 	inline-size: 40px;
 	block-size: 22px;
 	margin: 0;
+	opacity: 0;
+	cursor: inherit;
+}
+
+.atcf-switch__track {
+	flex: 0 0 auto;
+	inline-size: 40px;
+	block-size: 22px;
+	border-radius: 11px;
+	background: var( --atcf-border );
+	box-shadow: inset 0 0 0 1px rgba( 0, 0, 0, 0.06 );
+	transition: background-color 0.15s ease;
+}
+
+/* The thumb. */
+.atcf-switch__track::after {
+	content: '';
+	display: block;
+	inline-size: 18px;
+	block-size: 18px;
+	margin-block-start: 2px;
+	margin-inline-start: 2px;
+	border-radius: 50%;
+	background: var( --atcf-bg );
+	box-shadow: 0 1px 2px rgba( 0, 0, 0, 0.25 );
+	transition: margin-inline-start 0.15s ease;
+}
+
+.atcf-switch input:checked + .atcf-switch__track {
+	background: var( --atcf-accent );
+}
+
+.atcf-switch input:checked + .atcf-switch__track::after {
+	margin-inline-start: 20px;
+}
+
+.atcf-switch input:focus-visible + .atcf-switch__track {
+	outline: 2px solid var( --atcf-accent );
+	outline-offset: 2px;
+}
+
+.atcf-switch input:disabled + .atcf-switch__track {
+	opacity: 0.5;
+}
+
+.atcf-switch:has( input:disabled ) {
+	cursor: default;
+}
+
+.atcf-switch__label {
+	color: var( --atcf-fg );
+}
+
+@media ( prefers-reduced-motion: reduce ) {
+	.atcf-switch__track,
+	.atcf-switch__track::after {
+		transition: none;
+	}
+}
+
+/*
+ * High-contrast themes flatten backgrounds, which is everything the track
+ * says with. Borders and system colours say it instead.
+ */
+@media ( forced-colors: active ) {
+	.atcf-switch__track {
+		border: 1px solid ButtonText;
+		background: Canvas;
+	}
+
+	.atcf-switch__track::after {
+		background: ButtonText;
+		box-shadow: none;
+	}
+
+	.atcf-switch input:checked + .atcf-switch__track {
+		background: Highlight;
+	}
+
+	.atcf-switch input:checked + .atcf-switch__track::after {
+		background: HighlightText;
+	}
 }
 
 /* Range --------------------------------------------------------------------- */

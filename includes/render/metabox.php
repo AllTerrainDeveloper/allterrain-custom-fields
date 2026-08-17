@@ -57,7 +57,11 @@ function atcf_register_metaboxes( $post_type, $post ) {
 
 		add_meta_box(
 			'atcf-group-' . $group['key'],
-			$group['title'],
+			// Core prints metabox titles without escaping them, so it is done
+			// here — the title is admin-authored, but "admin-authored" is not
+			// the same thing as "markup" on a multisite where admins lack
+			// `unfiltered_html`.
+			esc_html( $group['title'] ),
 			'atcf_render_metabox',
 			$post_type,
 			$position,

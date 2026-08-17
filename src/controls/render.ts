@@ -210,7 +210,14 @@ function drawControl( context: DrawContext ): ( () => void ) | void {
 				el( 'label', {
 					class: 'atcf-switch',
 					attrs: { for: id },
-					children: [ input, el( 'span', { class: 'atcf-switch__label', text: String( settings.message ?? '' ) } ) ],
+					children: [
+						input,
+						// The same track the PHP renderer prints. Without it this
+						// renderer's switches were bare checkboxes wearing the
+						// stylesheet's hit-area sizing — the ugly blue pill.
+						el( 'span', { class: 'atcf-switch__track', attrs: { 'aria-hidden': 'true' } } ),
+						el( 'span', { class: 'atcf-switch__label', text: String( settings.message ?? '' ) } ),
+					],
 				} )
 			);
 
@@ -445,7 +452,7 @@ function toArray( value: unknown ): unknown[] {
 /**
  * Normalises the `choices` setting the same three ways PHP does.
  *
- * The list form is what the builder writes, the map form is what an ACF import
+ * The list form is what the builder writes, the map form is what an import
  * brings, and the one-per-line string is what somebody hand-editing produces.
  * All three are common enough that refusing two would be a bug report a week.
  *

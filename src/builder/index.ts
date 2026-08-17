@@ -580,7 +580,7 @@ class Builder {
 						enabled: on,
 						// Seeded from the title so the block has a usable name
 						// the moment it is switched on. A block registered as
-						// `acf/` is a block that never appears in the inserter.
+						// `atcf/` is a block that never appears in the inserter.
 						name: block.name || slug( this.group?.title ?? '' ),
 						title: block.title || ( this.group?.title ?? '' ),
 					},

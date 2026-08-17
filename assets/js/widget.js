@@ -103,9 +103,6 @@
     if (opts.text !== void 0) {
       node.textContent = opts.text;
     }
-    if (opts.html !== void 0) {
-      node.innerHTML = opts.html;
-    }
     if (opts.style) {
       Object.entries(opts.style).forEach(([property, value]) => {
         if (value === void 0 || value === null) {
@@ -1172,7 +1169,10 @@
     });
     const titleInput = control("os-text-field", "input", {
       class: "atcf-link__title",
-      attrs: { type: "text", placeholder: t("add", "Add"), "aria-label": "Link text" }
+      // Its own string, not the borrowed "Add" that used to sit here — a
+      // placeholder is the only name an optional input gets, and "Add" names
+      // a button, not a box for the words a link shows.
+      attrs: { type: "text", placeholder: t("linkText", "Link text"), "aria-label": "Link text" }
     });
     const targetInput = el("input", { attrs: { type: "checkbox" } });
     urlInput.value = current.url;
@@ -1469,7 +1469,14 @@
           el("label", {
             class: "atcf-switch",
             attrs: { for: id },
-            children: [input, el("span", { class: "atcf-switch__label", text: String(settings.message ?? "") })]
+            children: [
+              input,
+              // The same track the PHP renderer prints. Without it this
+              // renderer's switches were bare checkboxes wearing the
+              // stylesheet's hit-area sizing — the ugly blue pill.
+              el("span", { class: "atcf-switch__track", attrs: { "aria-hidden": "true" } }),
+              el("span", { class: "atcf-switch__label", text: String(settings.message ?? "") })
+            ]
           })
         );
         return;
@@ -1887,13 +1894,13 @@
       clear(list);
       clear(foot);
       rows.forEach((row, index) => {
-        const layout = layoutFor(String(row.acf_fc_layout ?? ""));
+        const layout = layoutFor(String(row.atcf_layout ?? ""));
         if (!layout) {
           list.append(
             el("div", {
               class: "atcf-row atcf-row--orphan",
               children: [
-                el("p", { text: `${String(row.acf_fc_layout ?? "?")} — this block no longer exists` }),
+                el("p", { text: `${String(row.atcf_layout ?? "?")} — this block no longer exists` }),
                 button(t("remove", "Remove"), {
                   on: {
                     click: () => {
@@ -1983,14 +1990,14 @@
       }
       const menu = el("div", { class: "atcf-layouts" });
       layouts.forEach((layout) => {
-        const used = rows.filter((row) => row.acf_fc_layout === layout.name).length;
+        const used = rows.filter((row) => row.atcf_layout === layout.name).length;
         menu.append(
           button(layout.label, {
             class: "atcf-layouts__add",
             attrs: { disabled: layout.max > 0 && used >= layout.max ? true : null },
             on: {
               click: () => {
-                const row = { acf_fc_layout: layout.name };
+                const row = { atcf_layout: layout.name };
                 layout.sub_fields.forEach((sub) => {
                   row[sub.key] = sub.settings.default_value ?? "";
                 });
@@ -2743,7 +2750,11 @@
       if (!url) {
         return;
       }
-      preview.append(el("a", { text: url, attrs: { href: url, target: "_blank", rel: "noreferrer noopener" } }));
+      if (/^https?:\/\//i.test(url)) {
+        preview.append(el("a", { text: url, attrs: { href: url, target: "_blank", rel: "noreferrer noopener" } }));
+      } else {
+        preview.append(el("span", { text: url }));
+      }
     }, 300);
     input.addEventListener("input", refresh);
     host.append(el("div", { class: "atcf-oembed", children: [input, preview] }));

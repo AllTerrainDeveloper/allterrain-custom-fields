@@ -590,9 +590,9 @@ apply_filters( 'atcf_rest_field_values', array $values, WP_Post $post );
 
 ### `atcf_json_dir` — Stable
 
-Where field group JSON is written. Defaults to `acf-json` in the active theme,
-which is the same path ACF uses — so a site migrating in already has its files
-where this looks.
+Where field group JSON is written. Defaults to `atcf-json` in the active theme.
+Point it at a directory an earlier plugin left behind and a migrating site keeps
+its files where they already are.
 
 ```php
 apply_filters( 'atcf_json_dir', string $dir );
@@ -632,18 +632,102 @@ changed once, in the rename from Desktop Mode to OpenStation.
 
 ## Compatibility
 
-### `atcf_acf_compatibility` — Stable
+### `atcf_template_compatibility` — Stable
 
-Whether to define the ACF-compatible function names (`get_field()`,
+Whether to define the drop-in template function names (`get_field()`,
 `have_rows()`, …) when nothing else has claimed them.
 
 ```php
-apply_filters( 'atcf_acf_compatibility', bool $enabled );
+apply_filters( 'atcf_template_compatibility', bool $enabled );
 ```
 
 Return false on a site that would rather keep the namespace clear — because it is
 mid-migration and wants the fatal error that tells it a template was missed,
 rather than the silence that hides it.
+
+### `atcf_import_acf_type_map` — Experimental
+
+The ACF-to-AllTerrain field type map the importer translates through. Almost
+every slug is identical; this map holds the strays (`google_map` → `location`,
+`icon_picker` → `icon`). A plugin porting a custom ACF field type adds its own
+slug here and the importer stops flagging it.
+
+```php
+apply_filters( 'atcf_import_acf_type_map', array $map );
+```
+
+### `atcf_import_acf_group` — Experimental
+
+A field group converted from ACF, just before it is saved. The place to carry
+a setting the conversion has no opinion about, or to veto a group by returning
+an empty array.
+
+```php
+apply_filters( 'atcf_import_acf_group', array $group, array $acf, array $warnings );
+```
+
+### `atcf_import_acf_field` — Experimental
+
+The same, per field.
+
+```php
+apply_filters( 'atcf_import_acf_field', array $field, array $acf, array $warnings );
+```
+
+The importer itself is two REST routes under `allterrain-fields/v1`, both
+gated on `atcf_can_manage()`:
+
+- `GET /import/acf` — what there is to import from: whether ACF is active, how
+  many `acf-field-group` posts the database holds, and a summary of every
+  group found (running plugin first, database leftovers second).
+- `POST /import/acf` — imports. A body carrying `groups` converts a pasted ACF
+  export; a body carrying `keys` imports that subset of what the site holds;
+  an empty body imports everything detected. Groups are matched on key, so
+  importing twice updates rather than duplicates. The response lists, per
+  group, whatever would not convert.
+
+### `atcf_import_metabox_type_map` — Experimental
+
+The Meta-Box-to-AllTerrain field type map the importer translates through. A
+plugin porting a custom Meta Box field type adds its own slug here and the
+importer stops flagging it.
+
+```php
+apply_filters( 'atcf_import_metabox_type_map', array $map );
+```
+
+### `atcf_import_metabox_group` — Experimental
+
+A field group converted from a Meta Box definition, just before it is saved.
+The place to carry a setting the conversion has no opinion about, or to veto a
+box by returning an empty array.
+
+```php
+apply_filters( 'atcf_import_metabox_group', array $group, array $box, array $warnings );
+```
+
+### `atcf_import_metabox_field` — Experimental
+
+The same, per field.
+
+```php
+apply_filters( 'atcf_import_metabox_field', array $field, array $mb, array $warnings );
+```
+
+The importer itself is two REST routes under `allterrain-fields/v1`, both
+gated on `atcf_can_manage()`:
+
+- `GET /import/metabox` — what there is to import from: whether Meta Box is
+  active and a summary of every definition found (the `rwmb_meta_boxes`
+  filter first, the Builder's `meta-box` posts second — the latter survive
+  Meta Box being deactivated).
+- `POST /import/metabox` — imports. A body carrying `boxes` converts a pasted
+  Builder export (or hand-written `rwmb_meta_boxes` arrays); a body carrying
+  `ids` imports that subset of what the site holds; an empty body imports
+  everything detected. Field keys are minted deterministically from the box
+  id and field path, so importing twice updates rather than duplicates. The
+  response lists, per group, everything worth knowing — including which
+  fields' stored values do not share a storage layout and will start fresh.
 
 ---
 
