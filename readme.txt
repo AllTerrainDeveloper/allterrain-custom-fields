@@ -127,9 +127,13 @@ either way.
 = Will values written by another custom-fields plugin work? =
 
 Values stored as ordinary post meta keyed by field name — the convention most
-custom-fields plugins use — are readable as-is. Field *groups* need importing:
-export them from your current plugin as JSON and paste them into
-**Fields → Tools**.
+custom-fields plugins use — are readable as-is; nothing in the database is
+rewritten. Field *groups* come across through **Fields → Tools → Import from
+ACF**, which reads them from the running ACF plugin, from the rows ACF left in
+the database after being deactivated, or from a pasted `acf-export-*.json`
+file. Groups are matched on key, so importing twice updates rather than
+duplicates, and anything that would not convert is reported rather than
+dropped silently.
 
 = What happens to my data if I delete the plugin? =
 
