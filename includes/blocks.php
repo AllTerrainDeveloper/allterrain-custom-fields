@@ -126,6 +126,18 @@ function atcf_render_group_block( $attributes, $content = '', $block = null ) {
 
 	$data = (array) atcf_arr( (array) $attributes, 'data', array() );
 
+	// Block values live in post_content rather than in meta, so they never pass
+	// through the save pipeline's per-type sanitisers. Running them here gives a
+	// block value the same treatment a meta value gets on its way in — the
+	// template author downstream is owed the same contract either way.
+	foreach ( $group['fields'] as $field ) {
+		$field_name = (string) atcf_arr( $field, 'name', '' );
+
+		if ( '' !== $field_name && array_key_exists( $field_name, $data ) ) {
+			$data[ $field_name ] = atcf_sanitize_value( $data[ $field_name ], $field );
+		}
+	}
+
 	atcf_block_stack(
 		array(
 			'group' => $group,

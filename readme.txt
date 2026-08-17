@@ -90,6 +90,23 @@ the browser never asks you to fill in something you cannot see. Dragging is neve
 the only way to do anything. `prefers-reduced-motion` and `forced-colors` are
 both honoured, and the fields work with JavaScript switched off.
 
+== External services ==
+
+The **Location** field talks to OpenStreetMap, and nothing else in the plugin
+talks to anyone:
+
+* **Nominatim** (`nominatim.openstreetmap.org`) — when you type an address into
+  a Location field in the admin, the text you typed is sent to Nominatim to be
+  turned into coordinates. No account, cookie or key is involved.
+* **OpenStreetMap embeds** (`www.openstreetmap.org`) — the field's map preview
+  is an embedded OpenStreetMap frame loaded for the stored coordinates, with
+  `referrerpolicy="no-referrer"`.
+
+Both requests happen only on admin screens, only for the Location field, and
+only when someone uses it. See the
+[OpenStreetMap privacy policy](https://osmfoundation.org/wiki/Privacy_Policy)
+and the [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/).
+
 == Installation ==
 
 1. Upload the plugin to `wp-content/plugins/`, or install it through **Plugins →

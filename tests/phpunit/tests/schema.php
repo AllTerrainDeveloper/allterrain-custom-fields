@@ -389,4 +389,67 @@ class ATCF_Test_Schema extends WP_UnitTestCase {
 
 		$this->assertContains( 'group_fromcode', wp_list_pluck( atcf_groups_for( atcf_post_context( $page ) ), 'key' ) );
 	}
+
+	/**
+	 * A field cannot be named after a meta key WordPress itself reads.
+	 *
+	 * `wp_capabilities` on a user is the row roles live in; a field with that
+	 * name would turn "fill in a field" into "grant a role".
+	 *
+	 * @covers ::atcf_normalize_field
+	 * @covers ::atcf_is_reserved_field_name
+	 */
+	public function test_reserved_meta_names_are_refused() {
+		global $wpdb;
+
+		foreach ( array( 'wp_capabilities', 'session_tokens', $wpdb->prefix . 'capabilities' ) as $reserved ) {
+			$field = atcf_normalize_field(
+				array(
+					'key'   => 'field_reserved',
+					'name'  => $reserved,
+					'label' => 'Innocent looking',
+					'type'  => 'text',
+				)
+			);
+
+			$this->assertSame( 'field_reserved', $field['name'], $reserved . ' should fall back to the key' );
+		}
+
+		// An ordinary name is left alone.
+		$field = atcf_normalize_field(
+			array(
+				'key'   => 'field_ok',
+				'name'  => 'hero_title',
+				'label' => 'Hero title',
+				'type'  => 'text',
+			)
+		);
+
+		$this->assertSame( 'hero_title', $field['name'] );
+	}
+
+	/**
+	 * Instructions and the message setting are capped at `wp_kses_post()` on the
+	 * way in, not just on the way out.
+	 *
+	 * @covers ::atcf_normalize_field
+	 */
+	public function test_markup_bearing_strings_are_ksesed_at_the_door() {
+		$field = atcf_normalize_field(
+			array(
+				'key'          => 'field_kses',
+				'label'        => 'Message',
+				'type'         => 'message',
+				'instructions' => 'Fine <em>emphasis</em><script>alert(1)</script>',
+				'settings'     => array(
+					'message' => '<strong>Bold</strong><script>alert(2)</script>',
+				),
+			)
+		);
+
+		$this->assertStringNotContainsString( '<script>', $field['instructions'] );
+		$this->assertStringContainsString( '<em>emphasis</em>', $field['instructions'] );
+		$this->assertStringNotContainsString( '<script>', $field['settings']['message'] );
+		$this->assertStringContainsString( '<strong>Bold</strong>', $field['settings']['message'] );
+	}
 }

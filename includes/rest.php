@@ -579,11 +579,17 @@ function atcf_rest_search( $request ) {
 			$args['search']  = '';
 		}
 
+		// Email addresses only for users allowed to see the Users screen.
+		// `edit_posts` is enough to *pick* a user for a field, but a Contributor
+		// harvesting every address on the site through this route is exactly the
+		// kind of disclosure `list_users` exists to gate.
+		$show_email = current_user_can( 'list_users' );
+
 		foreach ( get_users( $args ) as $user ) {
 			$results[] = array(
 				'id'    => (int) $user->ID,
 				'label' => $user->display_name,
-				'sub'   => $user->user_email,
+				'sub'   => $show_email ? $user->user_email : '',
 				'icon'  => get_avatar_url( $user->ID, array( 'size' => 48 ) ),
 			);
 		}
@@ -639,6 +645,13 @@ function atcf_rest_search( $request ) {
 		}
 
 		foreach ( get_posts( $args ) as $post ) {
+			// Unpublished work belongs to whoever may edit it. Without this, a
+			// Contributor could enumerate every other author's drafts and private
+			// posts — titles, statuses and edit links — through a search box.
+			if ( 'publish' !== $post->post_status && ! current_user_can( 'edit_post', $post->ID ) ) {
+				continue;
+			}
+
 			$type = get_post_type_object( $post->post_type );
 
 			$results[] = array(
@@ -715,6 +728,14 @@ function atcf_rest_read_values( $request ) {
 	$rows = array();
 
 	foreach ( $query->posts as $post ) {
+		// The same line the search route draws: published content is public,
+		// and anything else is only shown to somebody who may edit it. A grid
+		// that listed other authors' private values would turn the bulk editor
+		// into a disclosure tool for the lowest role that can open it.
+		if ( 'publish' !== $post->post_status && ! current_user_can( 'edit_post', $post->ID ) ) {
+			continue;
+		}
+
 		$ref    = array(
 			'type' => 'post',
 			'id'   => (int) $post->ID,
