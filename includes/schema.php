@@ -5,7 +5,7 @@
  * One function decides what a field group *is* — `atcf_normalize_group()` — and
  * everything else in the plugin is allowed to assume the shape it produces. That
  * is the whole contract: the builder posts whatever it likes, an import brings
- * whatever ACF wrote five years ago, a `atcf_register_field_group()` call from
+ * whatever another plugin wrote five years ago, a `atcf_register_field_group()` call from
  * another plugin brings a hand-written array, and all three arrive at the same
  * structure with every key present and correctly typed.
  *

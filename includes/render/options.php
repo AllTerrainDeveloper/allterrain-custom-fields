@@ -7,7 +7,7 @@
  * most-bought add-on in the history of this category, and it is a `add_menu_page()`
  * call, a form, and `update_option()`.
  *
- * Values go into `wp_options`, autoloaded, under the same names ACF writes: the
+ * Values go into `wp_options`, autoloaded, under the names migrating sites already hold: the
  * default page prefixes with `options_`, a named one with its own slug. That
  * means a site migrating in finds its values already in place, and a site
  * migrating out keeps them.

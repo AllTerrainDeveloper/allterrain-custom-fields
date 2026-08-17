@@ -445,7 +445,7 @@ function toArray( value: unknown ): unknown[] {
 /**
  * Normalises the `choices` setting the same three ways PHP does.
  *
- * The list form is what the builder writes, the map form is what an ACF import
+ * The list form is what the builder writes, the map form is what an import
  * brings, and the one-per-line string is what somebody hand-editing produces.
  * All three are common enough that refusing two would be a bug report a week.
  *
