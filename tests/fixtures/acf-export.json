@@ -1,0 +1,281 @@
+[
+	{
+		"key": "group_acf_property",
+		"title": "Property details",
+		"fields": [
+			{
+				"key": "field_acf_price",
+				"label": "Price",
+				"name": "price",
+				"aria-label": "",
+				"type": "number",
+				"instructions": "In whole euros.",
+				"required": 1,
+				"conditional_logic": 0,
+				"wrapper": {
+					"width": "50",
+					"class": "price-cell",
+					"id": ""
+				},
+				"default_value": 0,
+				"min": 0,
+				"max": "",
+				"placeholder": "",
+				"step": ""
+			},
+			{
+				"key": "field_acf_status",
+				"label": "Status",
+				"name": "status",
+				"type": "select",
+				"required": 0,
+				"conditional_logic": 0,
+				"wrapper": { "width": "50", "class": "", "id": "" },
+				"choices": {
+					"for_sale": "For sale",
+					"sold": "Sold",
+					"withdrawn": "Withdrawn"
+				},
+				"default_value": "for_sale",
+				"return_format": "value",
+				"multiple": 0,
+				"allow_null": 0,
+				"ui": 1
+			},
+			{
+				"key": "field_acf_sold_note",
+				"label": "Sold note",
+				"name": "sold_note",
+				"type": "text",
+				"required": 0,
+				"conditional_logic": [
+					[
+						{
+							"field": "field_acf_status",
+							"operator": "==",
+							"value": "sold"
+						},
+						{
+							"field": "field_acf_price",
+							"operator": ">",
+							"value": "0"
+						}
+					]
+				],
+				"wrapper": { "width": "", "class": "", "id": "" },
+				"default_value": "",
+				"maxlength": 140
+			},
+			{
+				"key": "field_acf_highlight",
+				"label": "Highlight",
+				"name": "highlight",
+				"type": "true_false",
+				"conditional_logic": [
+					[
+						{ "field": "field_acf_status", "operator": "==", "value": "for_sale" }
+					],
+					[
+						{ "field": "field_acf_status", "operator": "==", "value": "sold" }
+					]
+				],
+				"wrapper": { "width": "", "class": "", "id": "" },
+				"message": "Show on the front page",
+				"default_value": 0,
+				"ui": 1
+			},
+			{
+				"key": "field_acf_map",
+				"label": "Where it is",
+				"name": "where_it_is",
+				"type": "google_map",
+				"required": 0,
+				"conditional_logic": 0,
+				"wrapper": { "width": "", "class": "", "id": "" },
+				"center_lat": "36.7213",
+				"center_lng": "-4.4214",
+				"zoom": 14,
+				"height": ""
+			},
+			{
+				"key": "field_acf_rooms",
+				"label": "Rooms",
+				"name": "rooms",
+				"type": "repeater",
+				"required": 0,
+				"conditional_logic": 0,
+				"wrapper": { "width": "", "class": "", "id": "" },
+				"layout": "table",
+				"button_label": "Add room",
+				"min": 1,
+				"max": 20,
+				"collapsed": "field_acf_room_name",
+				"sub_fields": [
+					{
+						"key": "field_acf_room_name",
+						"label": "Name",
+						"name": "name",
+						"type": "text",
+						"required": 0,
+						"conditional_logic": 0,
+						"wrapper": { "width": "", "class": "", "id": "" },
+						"default_value": ""
+					},
+					{
+						"key": "field_acf_room_size",
+						"label": "Size",
+						"name": "size",
+						"type": "number",
+						"required": 0,
+						"conditional_logic": 0,
+						"wrapper": { "width": "", "class": "", "id": "" },
+						"default_value": "",
+						"min": "",
+						"max": ""
+					}
+				]
+			},
+			{
+				"key": "field_acf_related",
+				"label": "Related properties",
+				"name": "related_properties",
+				"type": "relationship",
+				"required": 0,
+				"conditional_logic": 0,
+				"wrapper": { "width": "", "class": "", "id": "" },
+				"post_type": [ "property" ],
+				"taxonomy": [ "category:featured" ],
+				"filters": [ "search" ],
+				"elements": "",
+				"min": "",
+				"max": 4,
+				"return_format": "object"
+			},
+			{
+				"key": "field_acf_agent",
+				"label": "Agent",
+				"name": "agent",
+				"type": "user",
+				"required": 0,
+				"conditional_logic": 0,
+				"wrapper": { "width": "", "class": "", "id": "" },
+				"role": [ "editor", "author" ],
+				"allow_null": 1,
+				"multiple": 0,
+				"return_format": "array"
+			},
+			{
+				"key": "field_acf_areas",
+				"label": "Areas",
+				"name": "areas",
+				"type": "taxonomy",
+				"required": 0,
+				"conditional_logic": 0,
+				"wrapper": { "width": "", "class": "", "id": "" },
+				"taxonomy": "post_tag",
+				"field_type": "multi_select",
+				"add_term": 1,
+				"save_terms": 1,
+				"load_terms": 0,
+				"return_format": "id",
+				"multiple": 0,
+				"allow_null": 0
+			},
+			{
+				"key": "field_acf_sections",
+				"label": "Page sections",
+				"name": "page_sections",
+				"type": "flexible_content",
+				"required": 0,
+				"conditional_logic": 0,
+				"wrapper": { "width": "", "class": "", "id": "" },
+				"button_label": "Add section",
+				"min": "",
+				"max": "",
+				"layouts": {
+					"layout_hero": {
+						"key": "layout_hero",
+						"name": "hero",
+						"label": "Hero",
+						"display": "block",
+						"min": "",
+						"max": 1,
+						"sub_fields": [
+							{
+								"key": "field_acf_hero_heading",
+								"label": "Heading",
+								"name": "heading",
+								"type": "text",
+								"required": 0,
+								"conditional_logic": 0,
+								"wrapper": { "width": "", "class": "", "id": "" },
+								"default_value": ""
+							}
+						]
+					},
+					"layout_quote": {
+						"key": "layout_quote",
+						"name": "quote",
+						"label": "Quote",
+						"display": "row",
+						"min": "",
+						"max": "",
+						"sub_fields": [
+							{
+								"key": "field_acf_quote_text",
+								"label": "Text",
+								"name": "text",
+								"type": "textarea",
+								"required": 0,
+								"conditional_logic": 0,
+								"wrapper": { "width": "", "class": "", "id": "" },
+								"default_value": "",
+								"rows": 3
+							}
+						]
+					}
+				}
+			},
+			{
+				"key": "field_acf_star",
+				"label": "Star rating",
+				"name": "star_rating",
+				"type": "star_rating_field",
+				"required": 0,
+				"conditional_logic": 0,
+				"wrapper": { "width": "", "class": "", "id": "" },
+				"max_stars": 5
+			}
+		],
+		"location": [
+			[
+				{
+					"param": "post_type",
+					"operator": "==",
+					"value": "property"
+				},
+				{
+					"param": "page_template",
+					"operator": "!=",
+					"value": "templates/landing.php"
+				}
+			],
+			[
+				{
+					"param": "current_user_role",
+					"operator": "==",
+					"value": "administrator"
+				}
+			]
+		],
+		"menu_order": 3,
+		"position": "acf_after_title",
+		"style": "seamless",
+		"label_placement": "left",
+		"instruction_placement": "field",
+		"hide_on_screen": [ "the_content" ],
+		"active": true,
+		"description": "Everything a listing carries.",
+		"show_in_rest": 1
+	}
+]

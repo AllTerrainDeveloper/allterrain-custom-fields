@@ -4,7 +4,7 @@
  *
  * A group's location is an **OR of ANDs**: a list of rule groups, each a list of
  * rules, and the group shows when any one rule group matches entirely. That is
- * ACF's structure and it is the right shape, because the sentence people
+ * the structure the ecosystem settled on, and the right shape, because the sentence people
  * actually say is "on Products, and also on Pages using the landing template".
  *
  * The engine is deliberately dumb: it turns a screen into a small flat context
@@ -761,7 +761,7 @@ function atcf_block_choices() {
 		$block = (array) $group['settings']['block'];
 
 		if ( $block['enabled'] && '' !== $block['name'] ) {
-			$choices[ 'acf/' . $block['name'] ] = '' !== $block['title'] ? $block['title'] : $group['title'];
+			$choices[ 'atcf/' . $block['name'] ] = '' !== $block['title'] ? $block['title'] : $group['title'];
 		}
 	}
 

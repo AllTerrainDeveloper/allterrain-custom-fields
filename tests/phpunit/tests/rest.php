@@ -652,4 +652,144 @@ class ATCF_Test_Rest extends WP_UnitTestCase {
 
 		$this->assertCount( 1, $items );
 	}
+
+	/**
+	 * Email addresses are only shown to somebody who could see the Users screen.
+	 *
+	 * Core's own users endpoint withholds emails from non-admins; a search box
+	 * for a user field must not re-expose them to every Contributor.
+	 *
+	 * @covers ::atcf_rest_search
+	 */
+	public function test_user_search_hides_emails_from_lower_roles() {
+		self::factory()->user->create(
+			array(
+				'role'       => 'author',
+				'user_email' => 'secret@example.com',
+			)
+		);
+
+		$contributor = self::factory()->user->create( array( 'role' => 'contributor' ) );
+
+		wp_set_current_user( $contributor );
+
+		$results = $this->request( 'GET', '/search', array( 'kind' => 'user' ) )->get_data()['results'];
+
+		$this->assertNotEmpty( $results );
+		$this->assertNotContains( 'secret@example.com', wp_list_pluck( $results, 'sub' ) );
+
+		wp_set_current_user( $this->admin );
+
+		$results = $this->request( 'GET', '/search', array( 'kind' => 'user' ) )->get_data()['results'];
+
+		$this->assertContains( 'secret@example.com', wp_list_pluck( $results, 'sub' ) );
+	}
+
+	/**
+	 * Unpublished work only shows up for somebody who may edit it.
+	 *
+	 * @covers ::atcf_rest_search
+	 */
+	public function test_post_search_hides_other_authors_unpublished_work() {
+		$contributor = self::factory()->user->create( array( 'role' => 'contributor' ) );
+
+		$their_draft = self::factory()->post->create(
+			array(
+				'post_status' => 'draft',
+				'post_title'  => 'Their secret draft',
+				'post_author' => $this->admin,
+			)
+		);
+		$my_draft    = self::factory()->post->create(
+			array(
+				'post_status' => 'draft',
+				'post_title'  => 'My own draft',
+				'post_author' => $contributor,
+			)
+		);
+		$published   = self::factory()->post->create(
+			array(
+				'post_status' => 'publish',
+				'post_title'  => 'Public post',
+				'post_author' => $this->admin,
+			)
+		);
+
+		wp_set_current_user( $contributor );
+
+		$ids = wp_list_pluck( $this->request( 'GET', '/search', array( 'kind' => 'post' ) )->get_data()['results'], 'id' );
+
+		$this->assertNotContains( $their_draft, $ids );
+		$this->assertContains( $my_draft, $ids );
+		$this->assertContains( $published, $ids );
+	}
+
+	/**
+	 * The bulk read draws the same line: published rows for everyone with the
+	 * route, everything else only for somebody who may edit it.
+	 *
+	 * @covers ::atcf_rest_read_values
+	 */
+	public function test_bulk_read_skips_other_authors_unpublished_rows() {
+		$saved = atcf_save_group(
+			array(
+				'title'    => 'Bulk read',
+				'location' => array(
+					array(
+						array(
+							'param'    => 'post_type',
+							'operator' => '==',
+							'value'    => 'post',
+						),
+					),
+				),
+				'fields'   => array(
+					array(
+						'key'   => 'field_bulkread',
+						'label' => 'Note',
+						'type'  => 'text',
+					),
+				),
+			)
+		);
+
+		$this->assertNotWPError( $saved );
+
+		$their_private = self::factory()->post->create(
+			array(
+				'post_status' => 'private',
+				'post_author' => $this->admin,
+			)
+		);
+
+		update_post_meta( $their_private, 'note', 'internal pricing' );
+
+		$contributor = self::factory()->user->create( array( 'role' => 'contributor' ) );
+
+		wp_set_current_user( $contributor );
+
+		$rows = $this->request(
+			'GET',
+			'/values',
+			array(
+				'group'     => (string) $saved['id'],
+				'post_type' => 'post',
+			)
+		)->get_data()['rows'];
+
+		$this->assertNotContains( $their_private, wp_list_pluck( $rows, 'id' ) );
+
+		wp_set_current_user( $this->admin );
+
+		$rows = $this->request(
+			'GET',
+			'/values',
+			array(
+				'group'     => (string) $saved['id'],
+				'post_type' => 'post',
+			)
+		)->get_data()['rows'];
+
+		$this->assertContains( $their_private, wp_list_pluck( $rows, 'id' ) );
+	}
 }

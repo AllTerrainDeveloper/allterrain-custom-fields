@@ -79,7 +79,7 @@ function atcf_logic_operators() {
 function atcf_normalize_operator( $operator ) {
 	$operator = (string) $operator;
 
-	// The spellings ACF's own exports use, mapped onto ours. An import that
+	// The symbolic spellings other plugins' exports use, mapped onto ours. An import that
 	// silently rewrote every `!=` into `is` would invert half the logic in the
 	// file, which is worse than refusing the import.
 	$aliases = array(

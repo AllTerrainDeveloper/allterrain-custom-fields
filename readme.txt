@@ -1,6 +1,6 @@
 === AllTerrain Fields ===
 Contributors: allterraindeveloper
-Tags: custom fields, acf, repeater, relationships, content model
+Tags: custom fields, repeater, relationships, content model
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
@@ -28,8 +28,8 @@ migration.
 
 **It answers to `get_field()`.** When nothing else has claimed those names, the
 familiar functions work unchanged: same argument order, same return shapes, same
-storage underneath. With Advanced Custom Fields active, ACF owns them and this
-plugin defines nothing.
+storage underneath. If another plugin already owns those names, it keeps them
+and this plugin defines nothing.
 
 = The field palette =
 
@@ -90,6 +90,23 @@ the browser never asks you to fill in something you cannot see. Dragging is neve
 the only way to do anything. `prefers-reduced-motion` and `forced-colors` are
 both honoured, and the fields work with JavaScript switched off.
 
+== External services ==
+
+The **Location** field talks to OpenStreetMap, and nothing else in the plugin
+talks to anyone:
+
+* **Nominatim** (`nominatim.openstreetmap.org`) — when you type an address into
+  a Location field in the admin, the text you typed is sent to Nominatim to be
+  turned into coordinates. No account, cookie or key is involved.
+* **OpenStreetMap embeds** (`www.openstreetmap.org`) — the field's map preview
+  is an embedded OpenStreetMap frame loaded for the stored coordinates, with
+  `referrerpolicy="no-referrer"`.
+
+Both requests happen only on admin screens, only for the Location field, and
+only when someone uses it. See the
+[OpenStreetMap privacy policy](https://osmfoundation.org/wiki/Privacy_Policy)
+and the [Nominatim usage policy](https://operations.osmfoundation.org/policies/nominatim/).
+
 == Installation ==
 
 1. Upload the plugin to `wp-content/plugins/`, or install it through **Plugins →
@@ -100,17 +117,23 @@ both honoured, and the fields work with JavaScript switched off.
 
 == Frequently Asked Questions ==
 
-= Can I use this alongside Advanced Custom Fields? =
+= Can I use this alongside another custom-fields plugin? =
 
 Yes. The plugin never defines a function another plugin has already defined, and
-the check happens after every plugin has loaded. With ACF active you use ACF's
-`get_field()`; this plugin's own `atcf_get_field()` is always available either
-way.
+the check happens after every plugin has loaded. When another plugin is active
+its `get_field()` wins; this plugin's own `atcf_get_field()` is always available
+either way.
 
-= Will my existing ACF values work? =
+= Will values written by another custom-fields plugin work? =
 
-They are stored in exactly the same place, so yes for values. Field *groups* need
-importing: export them from ACF as JSON and paste them into **Fields → Tools**.
+Values stored as ordinary post meta keyed by field name — the convention most
+custom-fields plugins use — are readable as-is; nothing in the database is
+rewritten. Field *groups* come across through **Fields → Tools → Import from
+ACF**, which reads them from the running ACF plugin, from the rows ACF left in
+the database after being deactivated, or from a pasted `acf-export-*.json`
+file. Groups are matched on key, so importing twice updates rather than
+duplicates, and anything that would not convert is reported rather than
+dropped silently.
 
 = Can I migrate from Meta Box? =
 

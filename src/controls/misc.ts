@@ -503,7 +503,16 @@ registerMount( 'oembed', ( context: MountContext ) => {
 		// A link, not a live embed. Resolving one needs a REST round trip per
 		// keystroke, and the field's job here is to confirm the URL is the one
 		// you meant — which the URL itself does.
-		preview.append( el( 'a', { text: url, attrs: { href: url, target: '_blank', rel: 'noreferrer noopener' } } ) );
+		//
+		// Clickable only when it is actually a web URL. The stored value is
+		// author-controlled, and a `javascript:` string rendered as a live href
+		// on somebody else's edit screen is the classic stored-XSS shape even
+		// when modern `target="_blank"` handling defuses it.
+		if ( /^https?:\/\//i.test( url ) ) {
+			preview.append( el( 'a', { text: url, attrs: { href: url, target: '_blank', rel: 'noreferrer noopener' } } ) );
+		} else {
+			preview.append( el( 'span', { text: url } ) );
+		}
 	}, 300 );
 
 	input.addEventListener( 'input', refresh );
