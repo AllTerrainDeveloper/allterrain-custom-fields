@@ -134,7 +134,7 @@ function atcf_register_choice_types() {
 /**
  * Normalises the `choices` setting into a list of `{ value, label }`.
  *
- * Three shapes reach this. The builder writes the list form. An import from ACF
+ * Three shapes reach this. The builder writes the list form. An import
  * writes a `value => label` map. And somebody hand-editing JSON writes a flat
  * list of strings, meaning "the value is the label". All three are common enough
  * that refusing two of them would be a bug report a week.
@@ -146,7 +146,7 @@ function atcf_register_choice_types() {
  */
 function atcf_normalize_choices( $choices ) {
 	if ( is_string( $choices ) ) {
-		// The one-per-line form ACF's own textarea produces, with an optional
+		// The one-per-line form settings textareas produce, with an optional
 		// `value : Label` split.
 		$choices = array_filter( array_map( 'trim', explode( "\n", $choices ) ), 'strlen' );
 	}

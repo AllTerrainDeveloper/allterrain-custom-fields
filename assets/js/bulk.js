@@ -132,9 +132,6 @@ var allTerrainFieldsBulk = function(exports) {
     if (opts.text !== void 0) {
       node.textContent = opts.text;
     }
-    if (opts.html !== void 0) {
-      node.innerHTML = opts.html;
-    }
     if (opts.style) {
       Object.entries(opts.style).forEach(([property, value]) => {
         if (value === void 0 || value === null) {
@@ -377,13 +374,25 @@ var allTerrainFieldsBulk = function(exports) {
       }
       this.groupId = this.groups[0]?.id ?? 0;
       if (!this.groupId) {
+        this.dismissLoader();
         clear(this.root);
         this.root.append(el("p", { class: "atcfk__empty", text: "There are no field groups to edit yet." }));
         return;
       }
       await this.load();
     }
+    /**
+     * Removes the template's boot spinner.
+     *
+     * A sibling of the mount root, printed by PHP so the window is never blank
+     * before the bundle runs — so no paint inside the root ever covers it, and
+     * left alone it says "Loading values…" forever over a grid that loaded.
+     */
+    dismissLoader() {
+      this.root.closest("[data-atcfk-root]")?.querySelector("[data-atcfk-bar]")?.remove();
+    }
     fail(error) {
+      this.dismissLoader();
       clear(this.root);
       this.root.append(
         el("div", {
@@ -414,6 +423,7 @@ var allTerrainFieldsBulk = function(exports) {
     }
     /** Paints the whole thing. */
     draw() {
+      this.dismissLoader();
       clear(this.root);
       this.root.append(this.controls(), this.grid(), this.footer());
     }

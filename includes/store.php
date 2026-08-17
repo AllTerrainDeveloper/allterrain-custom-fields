@@ -9,8 +9,8 @@
  * id or the number forty-two. The reference row is how a read knows which field
  * type to hand it to.
  *
- * This is ACF's storage convention, kept deliberately and exactly. It is the
- * single most valuable thing about ACF that has nothing to do with its UI:
+ * This is the flat storage convention WordPress developers already know, kept
+ * deliberately and exactly. Its value has nothing to do with any UI:
  *
  *   - `get_post_meta( $id, 'hero_title', true )` works with no plugin loaded.
  *   - `meta_query` finds posts by field value, with no join table.
@@ -151,7 +151,7 @@ function atcf_delete_raw( $ref, $key ) {
 /**
  * The option name a key stores under for a given options page.
  *
- * The default page prefixes with `options`, which is exactly what ACF writes —
+ * The default page prefixes with `options`, the spelling migrating sites already hold —
  * so a site migrating in finds its option values already where this plugin
  * looks. A named page prefixes with its own slug, so two pages can both have a
  * `title` field without one overwriting the other.
@@ -354,7 +354,7 @@ function atcf_load_flexible( $field, $ref, $path, $formatted ) {
 
 	foreach ( (array) $layouts as $index => $layout_name ) {
 		$layout = atcf_flexible_layout( $field, (string) $layout_name );
-		$row    = array( 'acf_fc_layout' => (string) $layout_name );
+		$row    = array( 'atcf_layout' => (string) $layout_name );
 
 		foreach ( (array) atcf_arr( (array) $layout, 'sub_fields', array() ) as $sub ) {
 			$row[ (string) atcf_arr( $sub, 'name', '' ) ] = atcf_load_value( $sub, $ref, $name . '_' . $index . '_', $formatted );
@@ -629,7 +629,7 @@ function atcf_save_flexible( $field, $ref, $value, $path ) {
 
 	foreach ( $rows as $index => $row ) {
 		$row         = is_array( $row ) ? $row : array();
-		$layout_name = (string) atcf_arr( $row, 'acf_fc_layout', atcf_arr( $row, 'layout', '' ) );
+		$layout_name = (string) atcf_arr( $row, 'atcf_layout', atcf_arr( $row, 'layout', '' ) );
 		$layout      = atcf_flexible_layout( $field, $layout_name );
 
 		if ( ! $layout ) {

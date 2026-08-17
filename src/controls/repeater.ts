@@ -342,8 +342,8 @@ function repeater( context: MountContext, subs: Field[] ): () => void {
  *
  * A repeater whose rows can each be a different shape. The only real difference
  * is that adding a row asks *which* shape first — so the Add button is a menu,
- * and a row remembers its layout in `acf_fc_layout`, spelled exactly that way
- * because every template loop anybody has written switches on it.
+ * and a row remembers its layout under the `atcf_layout` key, the same key
+ * every template loop and `get_row_layout()` switches on.
  *
  * @param context The mount.
  * @param layouts The layouts it offers.
@@ -373,7 +373,7 @@ function flexible( context: MountContext, layouts: Layout[] ): () => void {
 		clear( foot );
 
 		rows.forEach( ( row, index ) => {
-			const layout = layoutFor( String( row.acf_fc_layout ?? '' ) );
+			const layout = layoutFor( String( row.atcf_layout ?? '' ) );
 
 			if ( ! layout ) {
 				// A row naming a layout that has since been deleted. Kept and
@@ -384,7 +384,7 @@ function flexible( context: MountContext, layouts: Layout[] ): () => void {
 					el( 'div', {
 						class: 'atcf-row atcf-row--orphan',
 						children: [
-							el( 'p', { text: `${ String( row.acf_fc_layout ?? '?' ) } — this block no longer exists` } ),
+							el( 'p', { text: `${ String( row.atcf_layout ?? '?' ) } — this block no longer exists` } ),
 							button( t( 'remove', 'Remove' ), {
 								on: {
 									click: () => {
@@ -486,7 +486,7 @@ function flexible( context: MountContext, layouts: Layout[] ): () => void {
 		const menu = el( 'div', { class: 'atcf-layouts' } );
 
 		layouts.forEach( ( layout ) => {
-			const used = rows.filter( ( row ) => row.acf_fc_layout === layout.name ).length;
+			const used = rows.filter( ( row ) => row.atcf_layout === layout.name ).length;
 
 			menu.append(
 				button( layout.label, {
@@ -494,7 +494,7 @@ function flexible( context: MountContext, layouts: Layout[] ): () => void {
 					attrs: { disabled: layout.max > 0 && used >= layout.max ? true : null },
 					on: {
 						click: () => {
-							const row: Record< string, unknown > = { acf_fc_layout: layout.name };
+							const row: Record< string, unknown > = { atcf_layout: layout.name };
 
 							layout.sub_fields.forEach( ( sub ) => {
 								row[ sub.key ] = ( sub.settings as { default_value?: unknown } ).default_value ?? '';

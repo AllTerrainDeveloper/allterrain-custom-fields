@@ -83,7 +83,7 @@ function atcf_resolve_ref( $selector = false ) {
 		);
 	}
 
-	// `term_12`, `user_3`, `taxonomy_category` — the prefixed forms ACF accepts,
+	// `term_12`, `user_3`, `taxonomy_category` — the prefixed selector forms,
 	// which exist in a great deal of published template code.
 	if ( preg_match( '/^(term|user|option|post)_(.+)$/', $selector, $matches ) ) {
 		return array(
@@ -577,7 +577,7 @@ function atcf_find_sub_field( $container, $selector, $row = array() ) {
 	$fields = array();
 
 	if ( 'flexible_content' === (string) atcf_arr( $container, 'type', '' ) ) {
-		$layout = atcf_flexible_layout( $container, (string) atcf_arr( $row, 'acf_fc_layout', '' ) );
+		$layout = atcf_flexible_layout( $container, (string) atcf_arr( $row, 'atcf_layout', '' ) );
 		$fields = (array) atcf_arr( (array) $layout, 'sub_fields', array() );
 	} else {
 		$fields = atcf_field_sub_fields( $container );
