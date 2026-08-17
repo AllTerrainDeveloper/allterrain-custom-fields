@@ -55,6 +55,22 @@ A computed field holds an expression over its siblings — `{price} * {quantity}
 a closed set of operators and functions, not `eval()`: it cannot call anything it
 was not given, cannot name a variable that is not a field, and cannot loop.
 
+= Showing values without touching a template =
+
+Storing a value is the easy half; every plugin in this category then leaves
+"and how do visitors see it?" to your theme, a paid views builder, or a
+shortcode with a security history. Here it is built in, four ways:
+
+* **Show on the front end** — switch it on per group and the fields render on
+  the post's own page, before or after the content, escaped, themable via
+  `allterrain-fields/group.php`. No code at all.
+* **Block bindings** — bind a core paragraph, heading, button or image to a
+  field (WordPress 6.5+), so the value lives in meta and the layout in blocks.
+* **`[atcf field="price"]`** — a shortcode that escapes by default, refuses
+  password fields, and will not read a post the visitor could not open.
+* **REST** — groups that opt in add an `atcf` object of formatted values to
+  the post's REST response, for headless front ends.
+
 = A bulk editor =
 
 One field group, one post type, every post, as a grid. Edit a cell, press Tab,
@@ -144,6 +160,16 @@ names, so every simple field's values are already where this plugin looks.
 Groups and cloneable fields are the exception — Meta Box stores those as one
 serialised row — and the import names each one rather than letting you find
 out from an empty repeater.
+
+= How do I show a field on the site? =
+
+Five ways, from no code to full control: switch on **Show on the front end**
+in the group's settings (renders on the post's page, themable via
+`allterrain-fields/group.php`); make the group a **block** and place it in the
+content; **bind** a core paragraph, heading, image or button to a field
+(WordPress 6.5+); drop **`[atcf field="price"]`** into the content; or call
+`get_field( 'price' )` in a template like it is 2012. All of the built-in
+paths escape output by default.
 
 = What happens to my data if I delete the plugin? =
 

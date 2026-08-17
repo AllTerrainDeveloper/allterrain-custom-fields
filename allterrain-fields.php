@@ -98,6 +98,7 @@ require_once ATCF_PATH . 'includes/save.php';
 require_once ATCF_PATH . 'includes/validation.php';
 require_once ATCF_PATH . 'includes/assets.php';
 require_once ATCF_PATH . 'includes/rest.php';
+require_once ATCF_PATH . 'includes/display.php';
 require_once ATCF_PATH . 'includes/import-acf.php';
 require_once ATCF_PATH . 'includes/import-metabox.php';
 require_once ATCF_PATH . 'includes/json-sync.php';

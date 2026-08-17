@@ -118,6 +118,30 @@ function atcf_normalize_group_settings( $settings ) {
 		'hide_on_screen'        => array_values( array_filter( array_map( 'sanitize_key', (array) atcf_arr( $settings, 'hide_on_screen', array() ) ) ) ),
 		'show_in_rest'          => (bool) atcf_arr( $settings, 'show_in_rest', true ),
 		'block'                 => atcf_normalize_block_settings( atcf_arr( $settings, 'block', array() ) ),
+		'frontend'              => atcf_normalize_frontend_settings( atcf_arr( $settings, 'frontend', array() ) ),
+	);
+}
+
+/**
+ * Normalises the front-end display settings a group can carry.
+ *
+ * The zero-code display: switch it on and the group renders on the post's own
+ * page, no template edit, no block, no shortcode. The competition either does
+ * not have this or sells it — a repeater is a list, and a list is not worth
+ * an upsell here either.
+ *
+ * @since 0.2.0
+ *
+ * @param mixed $frontend Raw settings.
+ * @return array The canonical settings.
+ */
+function atcf_normalize_frontend_settings( $frontend ) {
+	$frontend = is_array( $frontend ) ? $frontend : array();
+
+	return array(
+		'enabled'   => (bool) atcf_arr( $frontend, 'enabled', false ),
+		'placement' => 'before' === (string) atcf_arr( $frontend, 'placement', 'after' ) ? 'before' : 'after',
+		'heading'   => (bool) atcf_arr( $frontend, 'heading', true ),
 	);
 }
 

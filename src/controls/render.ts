@@ -476,9 +476,15 @@ export function normalizeChoices( choices: unknown ): Array< { value: string; la
 		return choices
 			.map( ( choice ) => {
 				if ( choice && typeof choice === 'object' ) {
-					const one = choice as { value?: unknown; label?: unknown };
+					// `key` as well as `value`, because a table's columns reach
+					// this normaliser too and a hand-written registration spells
+					// them `key`/`label` — the same spelling the PHP sanitiser
+					// reads. One normaliser, every dialect, or the two renderers
+					// disagree about whether a table has columns at all.
+					const one = choice as { value?: unknown; key?: unknown; label?: unknown };
+					const value = one.value ?? one.key ?? '';
 
-					return { value: String( one.value ?? '' ), label: String( one.label ?? one.value ?? '' ) };
+					return { value: String( value ), label: String( one.label ?? value ) };
 				}
 
 				return { value: String( choice ), label: String( choice ) };

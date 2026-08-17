@@ -460,7 +460,14 @@ function atcf_sanitize_table( $value, $field = array() ) {
 	$columns  = array();
 
 	foreach ( (array) atcf_arr( $settings, 'columns', array() ) as $column ) {
-		$key = is_array( $column ) ? (string) atcf_arr( $column, 'key', '' ) : (string) $column;
+		// Both spellings, because both exist: the builder's column editor
+		// writes `value`/`label` (it is the choices editor wearing another
+		// hat), and hand-written registrations say `key`. Reading only one of
+		// them is how every builder-made table was sanitised against an empty
+		// column list — which blanked every cell on save.
+		$key = is_array( $column )
+			? (string) atcf_arr( $column, 'key', (string) atcf_arr( $column, 'value', '' ) )
+			: (string) $column;
 		$key = atcf_sanitize_field_name( $key );
 
 		if ( '' !== $key ) {

@@ -82,6 +82,14 @@ export interface GroupSettings {
 	hide_on_screen: string[];
 	show_in_rest: boolean;
 	block: BlockSettings;
+	frontend: FrontendSettings;
+}
+
+/** The zero-code front-end display a group can switch on. */
+export interface FrontendSettings {
+	enabled: boolean;
+	placement: 'before' | 'after';
+	heading: boolean;
 }
 
 export interface BlockSettings {

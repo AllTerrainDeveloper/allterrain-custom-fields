@@ -285,6 +285,72 @@ class ATCF_Test_Templates extends WP_UnitTestCase {
 			'recipe'   => array( 'recipe' ),
 			'property' => array( 'property' ),
 			'event'    => array( 'event' ),
+			'product'  => array( 'product' ),
 		);
+	}
+
+	/**
+	 * The Products template is the display-layer showcase, and ships live.
+	 *
+	 * Apply it, fill a post in, view the post: the spec sheet renders itself.
+	 * This walks that exact path — through the real content filter — because
+	 * the template's whole reason to exist is that first moment working.
+	 *
+	 * @covers ::atcf_group_from_template
+	 * @covers ::atcf_display_in_content
+	 */
+	public function test_product_template_displays_itself() {
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+
+		$group = atcf_group_from_template( 'product' );
+
+		$this->assertNotWPError( $group );
+		$this->assertTrue( $group['settings']['frontend']['enabled'], 'The showcase must ship switched on.' );
+
+		$saved = atcf_save_group( $group );
+
+		$this->assertNotWPError( $saved );
+
+		wp_set_current_user( 0 );
+
+		$post = self::factory()->post->create( array( 'post_content' => 'The pitch.' ) );
+
+		update_post_meta( $post, 'price', '100' );
+		update_post_meta( $post, 'vat_rate', '21' );
+		update_post_meta(
+			$post,
+			'specifications',
+			array(
+				array(
+					'spec'  => 'Weight',
+					'value' => '1.2kg',
+				),
+			)
+		);
+
+		// The computed price recalculates on any write path; nudge one.
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
+		atcf_update_field( 'price', 100, $post );
+		wp_set_current_user( 0 );
+
+		$this->go_to( get_permalink( $post ) );
+
+		$content = '';
+
+		while ( have_posts() ) {
+			the_post();
+
+			$content = apply_filters( 'the_content', get_the_content() );
+		}
+
+		$this->assertStringContainsString( 'The pitch.', $content );
+		$this->assertStringContainsString( 'atcf-display', $content );
+
+		// The spec table, with its declared header row.
+		$this->assertStringContainsString( '<th scope="col">Spec</th>', $content );
+		$this->assertStringContainsString( '1.2kg', $content );
+
+		// The VAT-inclusive price worked itself out and rendered.
+		$this->assertStringContainsString( '121', $content );
 	}
 }
