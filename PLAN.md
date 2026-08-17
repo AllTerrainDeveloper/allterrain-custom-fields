@@ -10,7 +10,7 @@ graph**, and a field value is really a **thing you should be able to drag**.
 None of those three are expressible in a browser tab, and all three are
 first-class in OpenStation.
 
-## What the shell buys us that no ACF ever had
+## What the shell buys us that no custom-fields plugin ever had
 
 | Shell framework | What it becomes here |
 |---|---|
@@ -36,7 +36,7 @@ A field group is a post. Its schema is JSON in one meta row. A *value* is a
 normal meta row keyed by the field's **name** — `get_post_meta( $id,
 'hero_title', true )` works with no plugin API at all — with a companion
 `_hero_title` row holding the field key, which is how the plugin knows which
-field type wrote it. That is ACF's storage convention, and it is the right one:
+field type wrote it. That flat storage convention is the right one:
 it means every export tool, WP-CLI command, REST route and `meta_query` that
 already exists keeps working.
 
@@ -55,7 +55,7 @@ registry cannot express, the registry gets a feature.
 
 ## Build order
 
-1. **Foundation** — bootstrap, post types, schema normalisation, field-type registry, storage, location rules, template API + ACF-compatible shims.
+1. **Foundation** — bootstrap, post types, schema normalisation, field-type registry, storage, location rules, template API + drop-in `get_field()` shims.
 2. **Rendering** — field controls, metaboxes for post / term / user / options, save + validate, REST.
 3. **Shell** — `shell-api.php`, windows, icon, widget, commands, dock constellation, relations, drag payloads, preview.
 4. **Builder** — palette, canvas, inspector, location editor, logic map.

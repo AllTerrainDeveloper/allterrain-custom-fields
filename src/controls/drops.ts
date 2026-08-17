@@ -244,7 +244,11 @@ export function listenForCrossFrameDrops(): () => void {
 	};
 
 	const onMessage = ( event: MessageEvent ) => {
-		if ( event.source !== window.parent ) {
+		// Both checks, not either. `source` alone trusts whatever page framed
+		// this one — core's `X-Frame-Options: SAMEORIGIN` makes that a
+		// same-origin page today, but a header is a thing a proxy or another
+		// plugin's CSP can quietly drop, and the origin check costs one line.
+		if ( event.source !== window.parent || event.origin !== window.location.origin ) {
 			return;
 		}
 
@@ -285,7 +289,7 @@ export function listenForCrossFrameDrops(): () => void {
 				// Telling the parent this frame will take it is what makes the
 				// shell's ghost show an accepting cursor rather than a refusing
 				// one — the whole gesture reads as landing somewhere real.
-				window.parent.postMessage( { type: 'os-drag-accept', accepted: true }, '*' );
+				window.parent.postMessage( { type: 'os-drag-accept', accepted: true }, window.location.origin );
 			}
 
 			return;

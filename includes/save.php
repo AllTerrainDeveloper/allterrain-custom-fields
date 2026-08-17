@@ -303,15 +303,15 @@ function atcf_unwrap_flexible_rows( $value, $field, $values ) {
 
 	foreach ( (array) $value as $row ) {
 		$row    = is_array( $row ) ? $row : array();
-		$name   = (string) atcf_arr( $row, 'acf_fc_layout', atcf_arr( $row, '__layout', '' ) );
+		$name   = (string) atcf_arr( $row, 'atcf_layout', atcf_arr( $row, '__layout', '' ) );
 		$layout = atcf_flexible_layout( $field, $name );
 
 		if ( ! $layout ) {
 			continue;
 		}
 
-		$clean                  = atcf_unwrap_row( $row, (array) atcf_arr( $layout, 'sub_fields', array() ), $values );
-		$clean['acf_fc_layout'] = $name;
+		$clean                = atcf_unwrap_row( $row, (array) atcf_arr( $layout, 'sub_fields', array() ), $values );
+		$clean['atcf_layout'] = $name;
 
 		$rows[] = $clean;
 	}

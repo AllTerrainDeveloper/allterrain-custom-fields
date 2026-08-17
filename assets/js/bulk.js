@@ -132,9 +132,6 @@ var allTerrainFieldsBulk = function(exports) {
     if (opts.text !== void 0) {
       node.textContent = opts.text;
     }
-    if (opts.html !== void 0) {
-      node.innerHTML = opts.html;
-    }
     if (opts.style) {
       Object.entries(opts.style).forEach(([property, value]) => {
         if (value === void 0 || value === null) {
