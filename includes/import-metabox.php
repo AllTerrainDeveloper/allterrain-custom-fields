@@ -175,9 +175,9 @@ function atcf_rest_metabox_import( $request ) {
 	return rest_ensure_response( array( 'imported' => $results ) );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Finding boxes on the site                                                   */
-/* -------------------------------------------------------------------------- */
+/*
+ * Finding boxes on the site.
+ */
 
 /**
  * Every Meta Box definition this site holds, as raw Meta Box arrays.
@@ -372,9 +372,9 @@ function atcf_metabox_field_key( $box_id, $path ) {
 	return 'field_mb_' . substr( md5( $box_id . ':' . $path ), 0, 13 );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Conversion                                                                  */
-/* -------------------------------------------------------------------------- */
+/*
+ * Conversion.
+ */
 
 /**
  * Converts one Meta Box definition into this plugin's dialect.
