@@ -117,9 +117,10 @@ function atcf_sanitize_field_name( $name ) {
  * already written under the old name would be orphaned. Keys do not, which is
  * why the schema is joined by key and only the storage layer knows about names.
  *
- * The `field_` prefix is ACF's, and keeping it is not sentiment: a site
- * migrating from ACF has thousands of `_meta_key` rows containing `field_xxx`
- * strings, and a plugin that spells its keys differently cannot read them.
+ * The `field_` prefix is the one existing sites already hold, and keeping it
+ * is not sentiment: a site migrating in has thousands of `_meta_key` rows
+ * containing `field_xxx` strings, and a plugin that spells its keys
+ * differently cannot read them.
  *
  * @since 0.1.0
  *

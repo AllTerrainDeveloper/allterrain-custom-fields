@@ -13,7 +13,7 @@
  * worse than no file. Reading is not automatic, and that asymmetry is
  * deliberate: a file that silently overwrote the database on every page load
  * would make the builder appear to lose changes on any site where the file is
- * stale — which, on a shared host with a checked-in `acf-json` directory, is
+ * stale — which, on a shared host with a checked-in JSON directory, is
  * most of them. So this window shows the difference and asks.
  */
 

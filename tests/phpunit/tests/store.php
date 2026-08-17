@@ -2,8 +2,8 @@
 /**
  * Where values live.
  *
- * The storage convention is the most valuable thing this plugin inherits from
- * ACF and the easiest to break by accident, so it is asserted directly against
+ * The storage convention is the most valuable thing about this plugin and the
+ * easiest to break by accident, so it is asserted directly against
  * `get_post_meta()` rather than through the plugin's own reader. A test that
  * only used `atcf_get_field()` would pass on a storage layout nothing else on
  * the site could read.
@@ -322,15 +322,15 @@ class ATCF_Test_Store extends WP_UnitTestCase {
 			$this->ref(),
 			array(
 				array(
-					'acf_fc_layout' => 'hero',
-					'heading'       => 'Welcome',
+					'atcf_layout' => 'hero',
+					'heading'     => 'Welcome',
 				),
 			)
 		);
 
 		$read = atcf_load_value( $field, $this->ref(), '', false );
 
-		$this->assertSame( 'hero', $read[0]['acf_fc_layout'] );
+		$this->assertSame( 'hero', $read[0]['atcf_layout'] );
 		$this->assertSame( 'Welcome', $read[0]['heading'] );
 		$this->assertSame( 'Welcome', get_post_meta( $this->post, 'blocks_0_heading', true ) );
 	}
@@ -408,7 +408,7 @@ class ATCF_Test_Store extends WP_UnitTestCase {
 	}
 
 	/**
-	 * Options values land where ACF would have put them.
+	 * Options values land under the conventional `options_` names.
 	 *
 	 * Which is what makes a site migrating in find its values already in place.
 	 *

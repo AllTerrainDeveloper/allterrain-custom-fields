@@ -1,6 +1,6 @@
 === AllTerrain Fields ===
 Contributors: allterraindeveloper
-Tags: custom fields, acf, repeater, relationships, content model
+Tags: custom fields, repeater, relationships, content model
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
@@ -28,8 +28,8 @@ migration.
 
 **It answers to `get_field()`.** When nothing else has claimed those names, the
 familiar functions work unchanged: same argument order, same return shapes, same
-storage underneath. With Advanced Custom Fields active, ACF owns them and this
-plugin defines nothing.
+storage underneath. If another plugin already owns those names, it keeps them
+and this plugin defines nothing.
 
 = The field palette =
 
@@ -117,17 +117,19 @@ and the [Nominatim usage policy](https://operations.osmfoundation.org/policies/n
 
 == Frequently Asked Questions ==
 
-= Can I use this alongside Advanced Custom Fields? =
+= Can I use this alongside another custom-fields plugin? =
 
 Yes. The plugin never defines a function another plugin has already defined, and
-the check happens after every plugin has loaded. With ACF active you use ACF's
-`get_field()`; this plugin's own `atcf_get_field()` is always available either
-way.
+the check happens after every plugin has loaded. When another plugin is active
+its `get_field()` wins; this plugin's own `atcf_get_field()` is always available
+either way.
 
-= Will my existing ACF values work? =
+= Will values written by another custom-fields plugin work? =
 
-They are stored in exactly the same place, so yes for values. Field *groups* need
-importing: export them from ACF as JSON and paste them into **Fields → Tools**.
+Values stored as ordinary post meta keyed by field name — the convention most
+custom-fields plugins use — are readable as-is. Field *groups* need importing:
+export them from your current plugin as JSON and paste them into
+**Fields → Tools**.
 
 = What happens to my data if I delete the plugin? =
 

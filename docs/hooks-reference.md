@@ -514,9 +514,9 @@ apply_filters( 'atcf_options_pages', array[] $pages );
 
 ### `atcf_json_dir` — Stable
 
-Where field group JSON is written. Defaults to `acf-json` in the active theme,
-which is the same path ACF uses — so a site migrating in already has its files
-where this looks.
+Where field group JSON is written. Defaults to `atcf-json` in the active theme.
+Point it at a directory an earlier plugin left behind and a migrating site keeps
+its files where they already are.
 
 ```php
 apply_filters( 'atcf_json_dir', string $dir );
@@ -556,13 +556,13 @@ changed once, in the rename from Desktop Mode to OpenStation.
 
 ## Compatibility
 
-### `atcf_acf_compatibility` — Stable
+### `atcf_template_compatibility` — Stable
 
-Whether to define the ACF-compatible function names (`get_field()`,
+Whether to define the drop-in template function names (`get_field()`,
 `have_rows()`, …) when nothing else has claimed them.
 
 ```php
-apply_filters( 'atcf_acf_compatibility', bool $enabled );
+apply_filters( 'atcf_template_compatibility', bool $enabled );
 ```
 
 Return false on a site that would rather keep the namespace clear — because it is

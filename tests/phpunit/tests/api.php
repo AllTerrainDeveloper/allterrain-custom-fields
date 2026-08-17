@@ -465,7 +465,7 @@ class ATCF_Test_Api extends WP_UnitTestCase {
 	}
 
 	/**
-	 * The ACF-compatible names forward to ours.
+	 * The drop-in template names forward to ours.
 	 *
 	 * Hundreds of thousands of themes call `get_field()`. A plugin that made all
 	 * of that stop working would be a plugin with a migration guide instead of
@@ -473,7 +473,7 @@ class ATCF_Test_Api extends WP_UnitTestCase {
 	 *
 	 * @covers ::get_field
 	 */
-	public function test_acf_compatible_names() {
+	public function test_drop_in_template_names() {
 		if ( ! function_exists( 'get_field' ) ) {
 			$this->markTestSkipped( 'Another plugin owns get_field() on this install, which is the correct behaviour.' );
 		}

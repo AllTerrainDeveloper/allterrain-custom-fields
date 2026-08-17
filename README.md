@@ -47,8 +47,8 @@ A field group is a post. Its schema is one meta row. A value is a normal meta ro
 keyed by the field's **name** — so `get_post_meta( $id, 'hero_title', true )`
 works with no plugin loaded at all.
 
-That is ACF's storage convention, kept deliberately and exactly, because it is
-the most valuable thing about ACF that has nothing to do with its UI: every
+That flat convention is kept deliberately and exactly, because it is the most
+valuable thing a custom-fields plugin can offer that has nothing to do with its UI: every
 export tool, WP-CLI command, `meta_query` and migration script that already
 exists keeps working, and **a site can move off this plugin without a data
 migration.**
@@ -430,8 +430,8 @@ same return shapes, same storage underneath, so even the values are already wher
 a theme looks.
 
 Every definition is behind a `function_exists()` check made on `plugins_loaded`
-at priority 99. **With ACF active, ACF owns those names and this file defines
-nothing.** Two plugins racing to define `get_field()` is a fatal error on every
+at priority 99. **If another plugin already defines those names, it keeps them
+and this file defines nothing.** Two plugins racing to define `get_field()` is a fatal error on every
 request; the only safe way to offer a compatible name is to offer it last and
 only when it is free.
 
@@ -493,7 +493,7 @@ while ( have_rows( 'specifications' ) ) {
 ```
 
 …or the namespaced spellings (`atcf_get_field()`, `atcf_have_rows()`), which are
-always available whether or not ACF is installed beside you.
+always available whether or not another custom-fields plugin is installed beside you.
 
 ## Scripts
 
