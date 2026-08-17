@@ -88,7 +88,7 @@ require_once ATCF_PATH . 'includes/content-types.php';
 require_once ATCF_PATH . 'includes/store.php';
 require_once ATCF_PATH . 'includes/relationships.php';
 require_once ATCF_PATH . 'includes/api.php';
-require_once ATCF_PATH . 'includes/compat-acf.php';
+require_once ATCF_PATH . 'includes/compat.php';
 require_once ATCF_PATH . 'includes/render/controls.php';
 require_once ATCF_PATH . 'includes/render/metabox.php';
 require_once ATCF_PATH . 'includes/render/term.php';

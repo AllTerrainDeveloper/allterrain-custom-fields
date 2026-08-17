@@ -2,7 +2,7 @@
 /**
  * The compatible function names themselves.
  *
- * A separate file from `compat-acf.php` because every definition here is inside
+ * A separate file from `compat.php` because every definition here is inside
  * a `function_exists()` guard, and a file of nothing but guarded definitions is
  * easier to audit than the same definitions mixed in with the logic that decides
  * whether to load them.
@@ -17,7 +17,7 @@ defined( 'ABSPATH' ) || exit;
 
 /*
  * Every function below is deliberately unprefixed, which is the whole point of
- * the file: these are the names a theme written against ACF already calls. The
+ * the file: these are the names existing themes already call. The
  * `function_exists()` guard around each one is what makes claiming them safe, and
  * the sniff has no way to see that.
  */
@@ -189,35 +189,7 @@ if ( ! function_exists( 'get_row_layout' ) ) {
 
 		$row = isset( $loop['rows'][ $loop['index'] ] ) ? $loop['rows'][ $loop['index'] ] : array();
 
-		return (string) atcf_arr( (array) $row, 'acf_fc_layout', '' );
-	}
-}
-
-if ( ! function_exists( 'acf_add_options_page' ) ) {
-	/**
-	 * Registers an options page from code.
-	 *
-	 * @since 0.1.0
-	 *
-	 * @param array|string $args Page arguments, or just a title.
-	 * @return array The registered page.
-	 */
-	function acf_add_options_page( $args = array() ) {
-		return atcf_add_options_page( $args );
-	}
-}
-
-if ( ! function_exists( 'acf_add_local_field_group' ) ) {
-	/**
-	 * Registers a field group from code.
-	 *
-	 * @since 0.1.0
-	 *
-	 * @param array $group The group.
-	 * @return void
-	 */
-	function acf_add_local_field_group( $group ) {
-		atcf_register_field_group( $group );
+		return (string) atcf_arr( (array) $row, 'atcf_layout', '' );
 	}
 }
 

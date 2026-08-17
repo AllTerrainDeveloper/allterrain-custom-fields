@@ -58,9 +58,9 @@
 		{ "name": "multi-value: contains reaches into each", "value": [ "newsletter", "sport" ], "operator": "contains", "expected": "news", "result": true },
 
 		{ "name": "unknown operators fall back to is, rather than silently passing", "value": "draft", "operator": "wat", "expected": "draft", "result": true },
-		{ "name": "the ACF spelling of is", "value": "draft", "operator": "==", "expected": "draft", "result": true },
-		{ "name": "the ACF spelling of is_not", "value": "draft", "operator": "!=", "expected": "publish", "result": true },
-		{ "name": "the ACF spelling of greater", "value": 10, "operator": ">", "expected": 2, "result": true }
+		{ "name": "the symbolic spelling of is", "value": "draft", "operator": "==", "expected": "draft", "result": true },
+		{ "name": "the symbolic spelling of is_not", "value": "draft", "operator": "!=", "expected": "publish", "result": true },
+		{ "name": "the symbolic spelling of greater", "value": 10, "operator": ">", "expected": 2, "result": true }
 	],
 
 	"visibility": [

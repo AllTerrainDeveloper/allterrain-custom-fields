@@ -106,7 +106,6 @@ let pending: Promise< boolean > | null = null;
 export interface ElementOptions {
 	class?: string;
 	text?: string;
-	html?: string;
 	/**
 	 * Inline styles.
 	 *
@@ -148,9 +147,10 @@ export function el< K extends keyof HTMLElementTagNameMap >(
 		node.textContent = opts.text;
 	}
 
-	if ( opts.html !== undefined ) {
-		node.innerHTML = opts.html;
-	}
+	// There is deliberately no `html` option. Every call site renders through
+	// `text`, and an escape hatch that nobody uses is an escape hatch waiting
+	// for the first careless caller — the day somebody needs real markup, they
+	// can build it out of elements like everything else here does.
 
 	if ( opts.style ) {
 		Object.entries( opts.style ).forEach( ( [ property, value ] ) => {

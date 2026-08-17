@@ -58,7 +58,7 @@ function atcf_register_group_blocks() {
 		);
 
 		register_block_type(
-			'acf/' . $block['name'],
+			'atcf/' . $block['name'],
 			array(
 				'title'           => '' !== $block['title'] ? $block['title'] : $group['title'],
 				'description'     => $block['description'],
@@ -126,6 +126,18 @@ function atcf_render_group_block( $attributes, $content = '', $block = null ) {
 
 	$data = (array) atcf_arr( (array) $attributes, 'data', array() );
 
+	// Block values live in post_content rather than in meta, so they never pass
+	// through the save pipeline's per-type sanitisers. Running them here gives a
+	// block value the same treatment a meta value gets on its way in — the
+	// template author downstream is owed the same contract either way.
+	foreach ( $group['fields'] as $field ) {
+		$field_name = (string) atcf_arr( $field, 'name', '' );
+
+		if ( '' !== $field_name && array_key_exists( $field_name, $data ) ) {
+			$data[ $field_name ] = atcf_sanitize_value( $data[ $field_name ], $field );
+		}
+	}
+
 	atcf_block_stack(
 		array(
 			'group' => $group,
@@ -192,11 +204,11 @@ function atcf_block_template_path( $template ) {
  *
  * @since 0.1.0
  *
- * @param string $name Full block name, e.g. `acf/hero`.
+ * @param string $name Full block name, e.g. `atcf/hero`.
  * @return array|null The group, or null.
  */
 function atcf_group_for_block( $name ) {
-	$slug = str_replace( 'acf/', '', (string) $name );
+	$slug = str_replace( 'atcf/', '', (string) $name );
 
 	foreach ( atcf_get_groups() as $group ) {
 		if ( (string) $group['settings']['block']['name'] === $slug ) {
