@@ -29,7 +29,6 @@ import '../controls/misc';
 
 import { button, clear, componentsReady, el, icon, select, textField, toggle, uid } from '../ui';
 import { confirm, notify, shell, shellIsActive, whenShellReady, windowIdOf } from '../shell';
-import { mountWindowTabs } from '../window-tabs';
 import * as api from '../api';
 import { registerCanvasTarget, renderCanvas } from './canvas';
 import { renderInspector, syncInspector } from './inspector';
@@ -1503,8 +1502,6 @@ function mount( body: HTMLElement ): void {
 	mounted.push( builder );
 
 	void builder.start();
-
-	mountWindowTabs( 'allterrain-fields', body );
 }
 
 /**
@@ -1523,7 +1520,17 @@ const globals = window as unknown as { openStationNativeWindows?: NativeWindows 
 
 globals.openStationNativeWindows = globals.openStationNativeWindows ?? {};
 
-globals.openStationNativeWindows[ 'allterrain-fields' ] = ( body: HTMLElement ) => mount( body );
+// Chained, not assigned: the model, bulk and tools bundles ride this window
+// as tabs and hang their own mounts on the same callback. Whichever loads
+// last, every pane mounts.
+{
+	const prev = globals.openStationNativeWindows[ 'allterrain-fields' ];
+
+	globals.openStationNativeWindows[ 'allterrain-fields' ] = ( body: HTMLElement ) => {
+		prev?.( body );
+		mount( body );
+	};
+}
 
 globals.openStationNativeWindows[ 'allterrain-fields-formula' ] = ( body: HTMLElement ) => {
 	const root = body.querySelector< HTMLElement >( '[data-atcf-formula-root]' ) ?? body;

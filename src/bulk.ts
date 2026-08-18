@@ -23,8 +23,7 @@
  */
 
 import { button, clear, componentsReady, debounce, el, icon, select, uid } from './ui';
-import { notify, shell, shellIsActive, whenShellReady } from './shell';
-import { mountWindowTabs } from './window-tabs';
+import { activateFamilyTab, FAMILY_WINDOW, notify, openFamilyTab, shell, shellIsActive, whenShellReady } from './shell';
 import * as api from './api';
 import { normalizeChoices } from './controls/render';
 
@@ -518,7 +517,11 @@ function summarise( value: unknown ): string {
  * the builder page itself.
  */
 function openBuilder(): void {
-	if ( shellIsActive() && shell()?.openWindow?.( 'allterrain-fields' ) ) {
+	if ( shellIsActive() && shell()?.openWindow ) {
+		// The reader is on the Bulk Editor *tab* of the family window, so the
+		// builder is one tab over rather than another window away.
+		openFamilyTab( 'main' );
+
 		return;
 	}
 
@@ -535,7 +538,6 @@ function mount( body: HTMLElement ): void {
 	root.dataset.atcfkMounted = '1';
 
 	void new Bulk( root ).start();
-	mountWindowTabs( 'allterrain-fields-bulk', body );
 }
 
 const globals = window as unknown as {
@@ -543,7 +545,21 @@ const globals = window as unknown as {
 };
 
 globals.openStationNativeWindows = globals.openStationNativeWindows ?? {};
-globals.openStationNativeWindows[ 'allterrain-fields-bulk' ] = ( body: HTMLElement ) => mount( body );
+
+// The bulk pane rides in the family window as a tab; chain, never own — see
+// the same block in `tools.ts`.
+{
+	const prev = globals.openStationNativeWindows[ FAMILY_WINDOW ];
+
+	globals.openStationNativeWindows[ FAMILY_WINDOW ] = ( body: HTMLElement ) => {
+		prev?.( body );
+		mount( body );
+
+		if ( shell()?.getWindowParams?.( FAMILY_WINDOW )?.tab === 'bulk' ) {
+			activateFamilyTab( 'bulk' );
+		}
+	};
+}
 
 if ( typeof document !== 'undefined' ) {
 	whenShellReady( () => {

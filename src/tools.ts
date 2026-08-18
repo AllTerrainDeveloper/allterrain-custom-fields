@@ -18,8 +18,7 @@
  */
 
 import { button, clear, componentsReady, el } from './ui';
-import { confirm, notify, shellIsActive, whenShellReady } from './shell';
-import { mountWindowTabs } from './window-tabs';
+import { activateFamilyTab, confirm, FAMILY_WINDOW, notify, shell, shellIsActive, whenShellReady } from './shell';
 import * as api from './api';
 import type { GroupSummary, JsonDiff } from './types';
 
@@ -669,7 +668,6 @@ function mount( body: HTMLElement ): void {
 	root.dataset.atcftMounted = '1';
 
 	void new Tools( root ).start();
-	mountWindowTabs( 'allterrain-fields-tools', body );
 }
 
 const globals = window as unknown as {
@@ -677,7 +675,24 @@ const globals = window as unknown as {
 };
 
 globals.openStationNativeWindows = globals.openStationNativeWindows ?? {};
-globals.openStationNativeWindows[ 'allterrain-fields-tools' ] = ( body: HTMLElement ) => mount( body );
+
+// The tools pane rides in the family window as a tab, so this bundle *chains*
+// onto the window's render callback rather than owning one: whichever family
+// bundle loads last, every pane still mounts.
+{
+	const prev = globals.openStationNativeWindows[ FAMILY_WINDOW ];
+
+	globals.openStationNativeWindows[ FAMILY_WINDOW ] = ( body: HTMLElement ) => {
+		prev?.( body );
+		mount( body );
+
+		// A deep link (`admin.php?page=allterrain-fields-tools`) opens the
+		// window with `tab` in its params; land on the pane the URL named.
+		if ( shell()?.getWindowParams?.( FAMILY_WINDOW )?.tab === 'tools' ) {
+			activateFamilyTab( 'tools' );
+		}
+	};
+}
 
 if ( typeof document !== 'undefined' ) {
 	whenShellReady( () => {

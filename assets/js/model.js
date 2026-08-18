@@ -3,6 +3,17 @@
   function shell() {
     return window.wp?.os ?? null;
   }
+  const FAMILY_WINDOW = "allterrain-fields";
+  function activateFamilyTab(value, tries = 40) {
+    const win = shell()?.windowManager?.getById?.(FAMILY_WINDOW);
+    if (win?.activateTab) {
+      win.activateTab(value);
+      return;
+    }
+    if (tries > 0) {
+      window.setTimeout(() => activateFamilyTab(value, tries - 1), 50);
+    }
+  }
   function shellIsActive() {
     const os = shell();
     return Boolean(os?.isActive?.());
@@ -322,110 +333,6 @@
     return `${prefix}-${counter}`;
   }
   let counter = 0;
-  function config() {
-    const global = window.allTerrainFields;
-    if (global) {
-      return global;
-    }
-    const fromWindow = shell()?.getWindowConfig?.("allterrain-fields");
-    return fromWindow ?? {
-      restUrl: "",
-      wpRestUrl: "",
-      nonce: "",
-      adminUrl: "",
-      version: "0",
-      canManage: false,
-      devMode: false,
-      locale: "en_US",
-      dragTypes: {
-        field: "allterrain-fields/field",
-        group: "allterrain-fields/group",
-        value: "allterrain-fields/value"
-      },
-      shell: { active: false, chromeless: false }
-    };
-  }
-  function t(key, fallback2) {
-    const strings = window.allTerrainFieldsL10n;
-    return strings?.[key] ?? config().i18n?.[key] ?? fallback2;
-  }
-  class ApiError extends Error {
-    constructor(message, status, code) {
-      super(message);
-      this.name = "ApiError";
-      this.status = status;
-      this.code = code;
-    }
-  }
-  async function request(path, init = {}, source = "allterrain-fields") {
-    const { restUrl, nonce } = config();
-    const url = path.startsWith("http") ? path : restUrl + path;
-    const options = {
-      credentials: "same-origin",
-      ...init,
-      headers: {
-        "Content-Type": "application/json",
-        "X-WP-Nonce": nonce,
-        ...init.headers ?? {}
-      }
-    };
-    const os = shell();
-    const response = os?.fetch ? await os.fetch(url, options, { source }) : await fetch(url, options);
-    if (response.status === 204) {
-      return void 0;
-    }
-    const body = await response.json().catch(() => null);
-    if (!response.ok) {
-      const message = body?.message ?? `The server refused that (${response.status}).`;
-      throw new ApiError(message, response.status, body?.code ?? "unknown");
-    }
-    return body;
-  }
-  function getGroup(id) {
-    return request(`groups/${id}`);
-  }
-  function saveGroup(group) {
-    const path = group.id ? `groups/${group.id}` : "groups";
-    return request(path, { method: "POST", body: JSON.stringify(group) }, "field-group-save");
-  }
-  function createContentType(type) {
-    return request("content-types", { method: "POST", body: JSON.stringify(type) });
-  }
-  function deleteContentType(id) {
-    return request(`content-types/${id}`, { method: "DELETE" });
-  }
-  function getModel() {
-    return request("model");
-  }
-  function family() {
-    return [
-      { value: "allterrain-fields", label: t("windowGroups", "Field Groups") },
-      { value: "allterrain-fields-model", label: t("windowModel", "Content Model") },
-      { value: "allterrain-fields-bulk", label: t("windowBulk", "Bulk Editor") },
-      { value: "allterrain-fields-tools", label: t("windowTools", "Field Tools") }
-    ];
-  }
-  function mountWindowTabs(selfId, body) {
-    const os = shell();
-    const winEl = body.closest(".os-window");
-    if (!os || !winEl) {
-      return;
-    }
-    const instanceId = winEl.id.startsWith("wp-window-") ? winEl.id.slice("wp-window-".length) : selfId;
-    const win = os.windowManager?.getById?.(instanceId) ?? os.windowManager?.getById?.(selfId);
-    if (!win?.setTabs) {
-      return;
-    }
-    win.setTabs(family(), selfId);
-    winEl.addEventListener("os-window-tab-change", (event) => {
-      const value = event.detail?.value;
-      if (!value || value === selfId) {
-        return;
-      }
-      win.activateTab?.(selfId);
-      os.openWindow?.(value);
-    });
-  }
   const INTERACTIVE = [
     "input",
     "textarea",
@@ -681,6 +588,77 @@
       return null;
     }
     return dragManager().start({ ...opts, origin: event });
+  }
+  function config() {
+    const global = window.allTerrainFields;
+    if (global) {
+      return global;
+    }
+    const fromWindow = shell()?.getWindowConfig?.("allterrain-fields");
+    return fromWindow ?? {
+      restUrl: "",
+      wpRestUrl: "",
+      nonce: "",
+      adminUrl: "",
+      version: "0",
+      canManage: false,
+      devMode: false,
+      locale: "en_US",
+      dragTypes: {
+        field: "allterrain-fields/field",
+        group: "allterrain-fields/group",
+        value: "allterrain-fields/value"
+      },
+      shell: { active: false, chromeless: false }
+    };
+  }
+  class ApiError extends Error {
+    constructor(message, status, code) {
+      super(message);
+      this.name = "ApiError";
+      this.status = status;
+      this.code = code;
+    }
+  }
+  async function request(path, init = {}, source = "allterrain-fields") {
+    const { restUrl, nonce } = config();
+    const url = path.startsWith("http") ? path : restUrl + path;
+    const options = {
+      credentials: "same-origin",
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        "X-WP-Nonce": nonce,
+        ...init.headers ?? {}
+      }
+    };
+    const os = shell();
+    const response = os?.fetch ? await os.fetch(url, options, { source }) : await fetch(url, options);
+    if (response.status === 204) {
+      return void 0;
+    }
+    const body = await response.json().catch(() => null);
+    if (!response.ok) {
+      const message = body?.message ?? `The server refused that (${response.status}).`;
+      throw new ApiError(message, response.status, body?.code ?? "unknown");
+    }
+    return body;
+  }
+  function getGroup(id) {
+    return request(`groups/${id}`);
+  }
+  function saveGroup(group) {
+    const path = group.id ? `groups/${group.id}` : "groups";
+    return request(path, { method: "POST", body: JSON.stringify(group) }, "field-group-save");
+  }
+  function createContentType(type) {
+    return request("content-types", { method: "POST", body: JSON.stringify(type) });
+  }
+  function deleteContentType(id) {
+    return request(`content-types/${id}`, { method: "DELETE" });
+  }
+  function getModel() {
+    return request("model");
   }
   const NEW_TYPE_FLAG = "allterrain-fields/open-new-type";
   const GROUP_TYPE = "allterrain-fields/group";
@@ -1995,11 +1973,19 @@
     }
     root.dataset.atcfmMounted = "1";
     void new Model(root).start();
-    mountWindowTabs("allterrain-fields-model", body);
   }
   const globals = window;
   globals.openStationNativeWindows = globals.openStationNativeWindows ?? {};
-  globals.openStationNativeWindows["allterrain-fields-model"] = (body) => mount(body);
+  {
+    const prev = globals.openStationNativeWindows[FAMILY_WINDOW];
+    globals.openStationNativeWindows[FAMILY_WINDOW] = (body) => {
+      prev?.(body);
+      mount(body);
+      if (shell()?.getWindowParams?.(FAMILY_WINDOW)?.tab === "model") {
+        activateFamilyTab("model");
+      }
+    };
+  }
   if (typeof document !== "undefined") {
     whenShellReady(() => {
       document.querySelectorAll("[data-atcfm-root]").forEach((root) => {

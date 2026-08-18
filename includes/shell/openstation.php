@@ -55,6 +55,18 @@ const ATCF_WINDOW_TOOLS   = 'allterrain-fields-tools';
 const ATCF_WINDOW_PREVIEW = 'allterrain-fields-preview';
 
 /**
+ * The tab values inside the main window.
+ *
+ * The builder is the window's own `main` tab; these three are registered with
+ * `register_window_tab()` and swapped in place by the shell.
+ *
+ * @since 0.1.0
+ */
+const ATCF_TAB_MODEL = 'model';
+const ATCF_TAB_BULK  = 'bulk';
+const ATCF_TAB_TOOLS = 'tools';
+
+/**
  * The formula window.
  *
  * Paired with the builder rather than replacing it — see `shell/formula.php`.
@@ -219,50 +231,46 @@ function atcf_register_shell_surfaces() {
 		return;
 	}
 
+	// One window, four tabs. The surfaces used to be four sibling windows and
+	// clicking a tab *opened another window* — the opposite of what a tab
+	// promises. Now the builder window owns the family: its own template is the
+	// main tab, and the other three surfaces register as `<os-tabpanel>` tabs
+	// the shell swaps in place, exactly like the submenu tabs an admin-page
+	// window wears. A second window for side-by-side work is still one
+	// `openNewWindow()` away.
 	$windows = array(
 		ATCF_WINDOW_BUILDER => array(
-			'title'      => __( 'Field Groups', 'allterrain-fields' ),
-			'icon'       => 'dashicons-index-card',
-			'template'   => 'atcf_builder_template',
-			'script'     => 'allterrain-fields-builder',
-			'style'      => 'allterrain-fields-builder',
-			'width'      => 1360,
-			'height'     => 860,
-			'min_width'  => 780,
-			'min_height' => 520,
+			'title'          => __( 'AllTerrain Custom Fields', 'allterrain-fields' ),
+			'icon'           => 'dashicons-index-card',
+			'template'       => 'atcf_builder_template',
+			'script'         => 'allterrain-fields-builder',
+			'style'          => 'allterrain-fields-builder',
+			'main_tab_label' => __( 'Field Groups', 'allterrain-fields' ),
+			'width'          => 1360,
+			'height'         => 860,
+			'min_width'      => 780,
+			'min_height'     => 520,
 		),
-		ATCF_WINDOW_MODEL   => array(
-			'title'      => __( 'Content Model', 'allterrain-fields' ),
-			'icon'       => 'dashicons-networking',
-			'template'   => 'atcf_model_template',
-			'script'     => 'allterrain-fields-model',
-			'style'      => 'allterrain-fields-model',
-			'width'      => 1240,
-			'height'     => 820,
-			'min_width'  => 680,
-			'min_height' => 480,
+	);
+
+	$tabs = array(
+		ATCF_TAB_MODEL => array(
+			'label'    => __( 'Content Model', 'allterrain-fields' ),
+			'template' => 'atcf_model_template',
+			'script'   => 'allterrain-fields-model',
+			'position' => 20,
 		),
-		ATCF_WINDOW_BULK    => array(
-			'title'      => __( 'Bulk Editor', 'allterrain-fields' ),
-			'icon'       => 'dashicons-editor-table',
-			'template'   => 'atcf_bulk_template',
-			'script'     => 'allterrain-fields-bulk',
-			'style'      => 'allterrain-fields-builder',
-			'width'      => 1240,
-			'height'     => 780,
-			'min_width'  => 700,
-			'min_height' => 440,
+		ATCF_TAB_BULK  => array(
+			'label'    => __( 'Bulk Editor', 'allterrain-fields' ),
+			'template' => 'atcf_bulk_template',
+			'script'   => 'allterrain-fields-bulk',
+			'position' => 30,
 		),
-		ATCF_WINDOW_TOOLS   => array(
-			'title'      => __( 'Field Tools', 'allterrain-fields' ),
-			'icon'       => 'dashicons-admin-tools',
-			'template'   => 'atcf_tools_template',
-			'script'     => 'allterrain-fields-tools',
-			'style'      => 'allterrain-fields-builder',
-			'width'      => 940,
-			'height'     => 720,
-			'min_width'  => 560,
-			'min_height' => 420,
+		ATCF_TAB_TOOLS => array(
+			'label'    => __( 'Field Tools', 'allterrain-fields' ),
+			'template' => 'atcf_tools_template',
+			'script'   => 'allterrain-fields-tools',
+			'position' => 40,
 		),
 	);
 
@@ -296,9 +304,28 @@ function atcf_register_shell_surfaces() {
 		}
 	}
 
-	// A `WP_Error` from any one registration must not take the others down: a
-	// shell whose validation differs about one window's arguments should still
-	// give the user the other three.
+	// The tabs, on the window that made it. A shell too old to know
+	// `register_window_tab` simply leaves the window single-pane — the other
+	// surfaces stay reachable through their admin pages.
+	if ( in_array( ATCF_WINDOW_BUILDER, $registered, true ) && atcf_shell_has( 'register_window_tab' ) ) {
+		foreach ( $tabs as $value => $tab ) {
+			atcf_shell_call(
+				'register_window_tab',
+				ATCF_WINDOW_BUILDER,
+				array_merge(
+					$tab,
+					array(
+						'value'        => $value,
+						'capabilities' => array( ATCF_MANAGE_CAP ),
+					)
+				)
+			);
+		}
+	}
+
+	// A `WP_Error` from the registration must not take the rest down: a shell
+	// whose validation differs about the window's arguments should still give
+	// the user the icon-free surfaces.
 	if ( in_array( ATCF_WINDOW_BUILDER, $registered, true ) ) {
 		atcf_register_shell_icon();
 		atcf_register_shell_titlebar();
@@ -447,11 +474,13 @@ function atcf_register_shell_commands( $registered ) {
 		),
 	);
 
-	foreach ( $commands as $slug => $command ) {
-		if ( ! in_array( $slug, $registered, true ) ) {
-			continue;
-		}
+	// All four surfaces live in the one registered window now, so every
+	// command stands or falls with it rather than with a window of its own.
+	if ( ! in_array( ATCF_WINDOW_BUILDER, $registered, true ) ) {
+		return;
+	}
 
+	foreach ( $commands as $slug => $command ) {
 		atcf_shell_call( 'register_command', array_merge( array( 'slug' => $slug ), $command ) );
 	}
 }
@@ -478,6 +507,10 @@ function atcf_enqueue_in_shell() {
 
 	wp_enqueue_script( 'allterrain-fields-dock' );
 	wp_enqueue_style( 'allterrain-fields-builder' );
+
+	// The Content Model pane's stylesheet used to travel on its own window
+	// registration; as a tab it has none, so it loads with the shell.
+	wp_enqueue_style( 'allterrain-fields-model' );
 }
 
 /**
@@ -505,6 +538,7 @@ function atcf_enqueue_shell_styles() {
 	atcf_print_runtime_config();
 
 	wp_enqueue_style( 'allterrain-fields-builder' );
+	wp_enqueue_style( 'allterrain-fields-model' );
 	wp_enqueue_script( 'allterrain-fields-dock' );
 }
 

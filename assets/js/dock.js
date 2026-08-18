@@ -3,36 +3,48 @@ var allTerrainFieldsDock = function(exports) {
   const NEW_TYPE_FLAG = "allterrain-fields/open-new-type";
   const config = window.allTerrainFields;
   const BUILDER = "allterrain-fields";
-  const MODEL = "allterrain-fields-model";
-  const BULK = "allterrain-fields-bulk";
-  const TOOLS = "allterrain-fields-tools";
+  const TAB_MAIN = "main";
+  const TAB_MODEL = "model";
+  const TAB_BULK = "bulk";
+  const TAB_TOOLS = "tools";
   function shell() {
     return window.wp?.os ?? null;
   }
-  function open(id) {
-    shell()?.openWindow?.(id, { source: "dock" });
+  function activate(value, tries = 40) {
+    const win = shell()?.windowManager?.getById?.(BUILDER);
+    if (win?.activateTab) {
+      win.activateTab(value);
+      return;
+    }
+    if (tries > 0) {
+      window.setTimeout(() => activate(value, tries - 1), 50);
+    }
+  }
+  function open(value) {
+    shell()?.openWindow?.(BUILDER, { source: "dock", params: { tab: value } });
+    activate(value);
   }
   function submenuFor(runtime) {
     const rows = [];
     if (!runtime?.canManage) {
       return rows;
     }
-    rows.push({ title: "Field groups", url: "", onSelect: () => open(BUILDER), windowId: BUILDER });
-    rows.push({ title: "Content model", url: "", onSelect: () => open(MODEL), windowId: MODEL });
-    rows.push({ title: "Bulk editor", url: "", onSelect: () => open(BULK), windowId: BULK });
-    rows.push({ title: "Import, export and sync", url: "", onSelect: () => open(TOOLS), windowId: TOOLS });
+    rows.push({ title: "Field groups", url: "", onSelect: () => open(TAB_MAIN), windowId: BUILDER });
+    rows.push({ title: "Content model", url: "", onSelect: () => open(TAB_MODEL), windowId: BUILDER });
+    rows.push({ title: "Bulk editor", url: "", onSelect: () => open(TAB_BULK), windowId: BUILDER });
+    rows.push({ title: "Import, export and sync", url: "", onSelect: () => open(TAB_TOOLS), windowId: BUILDER });
     rows.push({
       title: "New custom post type…",
       url: "",
       onSelect: () => {
-        open(MODEL);
+        open(TAB_MODEL);
         try {
           window.sessionStorage.setItem(NEW_TYPE_FLAG, "1");
         } catch {
         }
         shell()?.broadcast?.("os.allterrain-fields.new-content-type", {});
       },
-      windowId: MODEL
+      windowId: BUILDER
     });
     return rows;
   }
@@ -60,10 +72,8 @@ var allTerrainFieldsDock = function(exports) {
         // The flyout is a hover gesture and never fans out for keyboard or
         // touch, so the tile's own activation has to go somewhere useful:
         // the builder, which is what the tile is named after.
-        onOpen: () => open(BUILDER),
-        isOpen: () => Boolean(
-          os.windowManager?.getById?.(BUILDER) || os.windowManager?.getById?.(MODEL) || os.windowManager?.getById?.(BULK) || os.windowManager?.getById?.(TOOLS)
-        ),
+        onOpen: () => open(TAB_MAIN),
+        isOpen: () => Boolean(os.windowManager?.getById?.(BUILDER)),
         submenu
       });
     } catch {
@@ -75,21 +85,24 @@ var allTerrainFieldsDock = function(exports) {
       return;
     }
     const pages = [
-      ["allterrain-fields", BUILDER],
-      ["allterrain-fields-model", MODEL],
-      ["allterrain-fields-bulk", BULK],
-      ["allterrain-fields-tools", TOOLS]
+      ["allterrain-fields", TAB_MAIN],
+      ["allterrain-fields-model", TAB_MODEL],
+      ["allterrain-fields-bulk", TAB_BULK],
+      ["allterrain-fields-tools", TAB_TOOLS]
     ];
-    pages.forEach(([page, windowId]) => {
+    pages.forEach(([page, tab]) => {
       const entry = {
         id: `allterrain-fields/${page}`,
-        nativeWindowId: windowId,
+        nativeWindowId: BUILDER,
         matches: (_url, parsed) => parsed.pathname.endsWith("/admin.php") && parsed.searchParams.get("page") === page
       };
-      if (windowId === BUILDER) {
+      if (tab === TAB_MAIN) {
         entry.params = (_url, parsed) => ({
+          tab,
           group: Number(parsed.searchParams.get("group")) || 0
         });
+      } else {
+        entry.params = () => ({ tab });
       }
       try {
         os.registerNativeUrlRemap?.(entry);

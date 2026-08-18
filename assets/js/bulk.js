@@ -3,6 +3,21 @@ var allTerrainFieldsBulk = function(exports) {
   function shell() {
     return window.wp?.os ?? null;
   }
+  const FAMILY_WINDOW = "allterrain-fields";
+  function activateFamilyTab(value, tries = 40) {
+    const win = shell()?.windowManager?.getById?.(FAMILY_WINDOW);
+    if (win?.activateTab) {
+      win.activateTab(value);
+      return;
+    }
+    if (tries > 0) {
+      window.setTimeout(() => activateFamilyTab(value, tries - 1), 50);
+    }
+  }
+  function openFamilyTab(value, source) {
+    shell()?.openWindow?.(FAMILY_WINDOW, { ...{}, params: { tab: value } });
+    activateFamilyTab(value);
+  }
   function shellIsActive() {
     const os = shell();
     return Boolean(os?.isActive?.());
@@ -334,35 +349,6 @@ var allTerrainFieldsBulk = function(exports) {
   }
   function writeValues(writes) {
     return request("values", { method: "POST", body: JSON.stringify({ writes }) }, "field-values-save");
-  }
-  function family() {
-    return [
-      { value: "allterrain-fields", label: t("windowGroups", "Field Groups") },
-      { value: "allterrain-fields-model", label: t("windowModel", "Content Model") },
-      { value: "allterrain-fields-bulk", label: t("windowBulk", "Bulk Editor") },
-      { value: "allterrain-fields-tools", label: t("windowTools", "Field Tools") }
-    ];
-  }
-  function mountWindowTabs(selfId, body) {
-    const os = shell();
-    const winEl = body.closest(".os-window");
-    if (!os || !winEl) {
-      return;
-    }
-    const instanceId = winEl.id.startsWith("wp-window-") ? winEl.id.slice("wp-window-".length) : selfId;
-    const win = os.windowManager?.getById?.(instanceId) ?? os.windowManager?.getById?.(selfId);
-    if (!win?.setTabs) {
-      return;
-    }
-    win.setTabs(family(), selfId);
-    winEl.addEventListener("os-window-tab-change", (event) => {
-      const value = event.detail?.value;
-      if (!value || value === selfId) {
-        return;
-      }
-      win.activateTab?.(selfId);
-      os.openWindow?.(value);
-    });
   }
   function normalizeChoices(choices) {
     if (typeof choices === "string") {
@@ -745,7 +731,8 @@ var allTerrainFieldsBulk = function(exports) {
     return value === "" || value === null || value === void 0 ? "—" : String(value);
   }
   function openBuilder() {
-    if (shellIsActive() && shell()?.openWindow?.("allterrain-fields")) {
+    if (shellIsActive() && shell()?.openWindow) {
+      openFamilyTab("main");
       return;
     }
     window.location.href = config().adminUrl + "admin.php?page=allterrain-fields";
@@ -757,11 +744,19 @@ var allTerrainFieldsBulk = function(exports) {
     }
     root.dataset.atcfkMounted = "1";
     void new Bulk(root).start();
-    mountWindowTabs("allterrain-fields-bulk", body);
   }
   const globals = window;
   globals.openStationNativeWindows = globals.openStationNativeWindows ?? {};
-  globals.openStationNativeWindows["allterrain-fields-bulk"] = (body) => mount(body);
+  {
+    const prev = globals.openStationNativeWindows[FAMILY_WINDOW];
+    globals.openStationNativeWindows[FAMILY_WINDOW] = (body) => {
+      prev?.(body);
+      mount(body);
+      if (shell()?.getWindowParams?.(FAMILY_WINDOW)?.tab === "bulk") {
+        activateFamilyTab("bulk");
+      }
+    };
+  }
   if (typeof document !== "undefined") {
     whenShellReady(() => {
       document.querySelectorAll("[data-atcfk-root]").forEach((root) => {

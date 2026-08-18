@@ -29,8 +29,7 @@
  */
 
 import { button, clear, componentsReady, el, icon, select, textField, toggle, uid } from '../ui';
-import { confirm, notify, shell, shellIsActive, whenShellReady } from '../shell';
-import { mountWindowTabs } from '../window-tabs';
+import { activateFamilyTab, confirm, FAMILY_WINDOW, notify, shell, shellIsActive, whenShellReady } from '../shell';
 import { buildPayload, dragManager, startDrag } from '../dnd';
 import * as api from '../api';
 import { NEW_TYPE_FLAG } from '../flags';
@@ -1724,7 +1723,6 @@ function mount( body: HTMLElement ): void {
 	root.dataset.atcfmMounted = '1';
 
 	void new Model( root ).start();
-	mountWindowTabs( 'allterrain-fields-model', body );
 }
 
 const globals = window as unknown as {
@@ -1732,7 +1730,21 @@ const globals = window as unknown as {
 };
 
 globals.openStationNativeWindows = globals.openStationNativeWindows ?? {};
-globals.openStationNativeWindows[ 'allterrain-fields-model' ] = ( body: HTMLElement ) => mount( body );
+
+// The model pane rides in the family window as a tab; chain, never own — see
+// the same block in `tools.ts`.
+{
+	const prev = globals.openStationNativeWindows[ FAMILY_WINDOW ];
+
+	globals.openStationNativeWindows[ FAMILY_WINDOW ] = ( body: HTMLElement ) => {
+		prev?.( body );
+		mount( body );
+
+		if ( shell()?.getWindowParams?.( FAMILY_WINDOW )?.tab === 'model' ) {
+			activateFamilyTab( 'model' );
+		}
+	};
+}
 
 if ( typeof document !== 'undefined' ) {
 	whenShellReady( () => {

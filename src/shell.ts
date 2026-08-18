@@ -20,6 +20,50 @@ export function shell(): ShellApi | null {
 	return ( window as unknown as { wp?: { os?: ShellApi } } ).wp?.os ?? null;
 }
 
+/** The one window all four surfaces live in, as tabs. */
+export const FAMILY_WINDOW = 'allterrain-fields';
+
+/**
+ * Switches the family window onto a tab, waiting out the open animation.
+ *
+ * `openWindow()` resolves the window asynchronously, so the handle — and the
+ * tab strip on it — may not exist yet when the caller wants a tab active. A
+ * short poll is honest about that: activate as soon as the manager can hand
+ * the window back, give up quietly after a couple of seconds.
+ *
+ * @param value Tab value — `main`, `model`, `bulk` or `tools`.
+ * @param tries How many 50ms attempts remain.
+ */
+export function activateFamilyTab( value: string, tries = 40 ): void {
+	const win = shell()?.windowManager?.getById?.( FAMILY_WINDOW ) as
+		| { activateTab?: ( value: string ) => void }
+		| undefined;
+
+	if ( win?.activateTab ) {
+		win.activateTab( value );
+
+		return;
+	}
+
+	if ( tries > 0 ) {
+		window.setTimeout( () => activateFamilyTab( value, tries - 1 ), 50 );
+	}
+}
+
+/**
+ * Opens (or focuses) the family window and lands it on a tab.
+ *
+ * @param value  Tab value — `main`, `model`, `bulk` or `tools`.
+ * @param source Attribution for the shell's own telemetry, e.g. `dock`.
+ */
+export function openFamilyTab( value: string, source?: string ): void {
+	// `params.tab` serves the fresh-open render path; `activateFamilyTab()`
+	// serves the already-open one. Both carry the same value so the stored
+	// params never disagree with the explicit choice.
+	shell()?.openWindow?.( FAMILY_WINDOW, { ...( source ? { source } : {} ), params: { tab: value } } );
+	activateFamilyTab( value );
+}
+
 /** Whether the desktop shell is mounted and switched on. */
 export function shellIsActive(): boolean {
 	const os = shell();

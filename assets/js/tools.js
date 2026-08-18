@@ -3,6 +3,17 @@
   function shell() {
     return window.wp?.os ?? null;
   }
+  const FAMILY_WINDOW = "allterrain-fields";
+  function activateFamilyTab(value, tries = 40) {
+    const win = shell()?.windowManager?.getById?.(FAMILY_WINDOW);
+    if (win?.activateTab) {
+      win.activateTab(value);
+      return;
+    }
+    if (tries > 0) {
+      window.setTimeout(() => activateFamilyTab(value, tries - 1), 50);
+    }
+  }
   function shellIsActive() {
     const os = shell();
     return Boolean(os?.isActive?.());
@@ -235,10 +246,6 @@
       shell: { active: false, chromeless: false }
     };
   }
-  function t(key, fallback) {
-    const strings = window.allTerrainFieldsL10n;
-    return strings?.[key] ?? config().i18n?.[key] ?? fallback;
-  }
   class ApiError extends Error {
     constructor(message, status, code) {
       super(message);
@@ -298,35 +305,6 @@
   }
   function jsonSync(keys = []) {
     return request("sync", { method: "POST", body: JSON.stringify({ keys }) }, "field-group-sync");
-  }
-  function family() {
-    return [
-      { value: "allterrain-fields", label: t("windowGroups", "Field Groups") },
-      { value: "allterrain-fields-model", label: t("windowModel", "Content Model") },
-      { value: "allterrain-fields-bulk", label: t("windowBulk", "Bulk Editor") },
-      { value: "allterrain-fields-tools", label: t("windowTools", "Field Tools") }
-    ];
-  }
-  function mountWindowTabs(selfId, body) {
-    const os = shell();
-    const winEl = body.closest(".os-window");
-    if (!os || !winEl) {
-      return;
-    }
-    const instanceId = winEl.id.startsWith("wp-window-") ? winEl.id.slice("wp-window-".length) : selfId;
-    const win = os.windowManager?.getById?.(instanceId) ?? os.windowManager?.getById?.(selfId);
-    if (!win?.setTabs) {
-      return;
-    }
-    win.setTabs(family(), selfId);
-    winEl.addEventListener("os-window-tab-change", (event) => {
-      const value = event.detail?.value;
-      if (!value || value === selfId) {
-        return;
-      }
-      win.activateTab?.(selfId);
-      os.openWindow?.(value);
-    });
   }
   class Tools {
     constructor(root) {
@@ -821,11 +799,19 @@
     }
     root.dataset.atcftMounted = "1";
     void new Tools(root).start();
-    mountWindowTabs("allterrain-fields-tools", body);
   }
   const globals = window;
   globals.openStationNativeWindows = globals.openStationNativeWindows ?? {};
-  globals.openStationNativeWindows["allterrain-fields-tools"] = (body) => mount(body);
+  {
+    const prev = globals.openStationNativeWindows[FAMILY_WINDOW];
+    globals.openStationNativeWindows[FAMILY_WINDOW] = (body) => {
+      prev?.(body);
+      mount(body);
+      if (shell()?.getWindowParams?.(FAMILY_WINDOW)?.tab === "tools") {
+        activateFamilyTab("tools");
+      }
+    };
+  }
   if (typeof document !== "undefined") {
     whenShellReady(() => {
       document.querySelectorAll("[data-atcft-root]").forEach((root) => {

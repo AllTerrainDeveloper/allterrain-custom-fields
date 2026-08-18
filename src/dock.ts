@@ -18,20 +18,52 @@ import type { NativeUrlRemap, RuntimeConfig, ShellApi, SubmenuRow } from './type
 
 const config = ( window as unknown as { allTerrainFields?: RuntimeConfig } ).allTerrainFields;
 
-/** The windows this tile can reach. */
+/** The window this tile reaches, and the tabs inside it. */
 const BUILDER = 'allterrain-fields';
-const MODEL = 'allterrain-fields-model';
-const BULK = 'allterrain-fields-bulk';
-const TOOLS = 'allterrain-fields-tools';
+const TAB_MAIN = 'main';
+const TAB_MODEL = 'model';
+const TAB_BULK = 'bulk';
+const TAB_TOOLS = 'tools';
 
 /** The shell, if there is one on this page. */
 function shell(): ShellApi | null {
 	return ( window as unknown as { wp?: { os?: ShellApi } } ).wp?.os ?? null;
 }
 
-/** Opens a window through the shell. */
-function open( id: string ): void {
-	shell()?.openWindow?.( id, { source: 'dock' } );
+/**
+ * Activates a tab on the family window, waiting out the open animation.
+ *
+ * Duplicated from `shell.ts` on purpose: this bundle is a couple of hundred
+ * bytes of registration, and importing the shell module would drag the whole
+ * gateway in for one ten-line helper.
+ *
+ * @param value Tab value.
+ * @param tries How many 50ms attempts remain.
+ */
+function activate( value: string, tries = 40 ): void {
+	const win = shell()?.windowManager?.getById?.( BUILDER ) as
+		| { activateTab?: ( value: string ) => void }
+		| undefined;
+
+	if ( win?.activateTab ) {
+		win.activateTab( value );
+
+		return;
+	}
+
+	if ( tries > 0 ) {
+		window.setTimeout( () => activate( value, tries - 1 ), 50 );
+	}
+}
+
+/** Opens the family window on a given tab. */
+function open( value: string ): void {
+	// `params.tab` is what a *fresh* open reads at render; `activate()` is what
+	// an already-open window needs. Sending both keeps the stored params in
+	// agreement with the explicit choice, so a stale deep-link param cannot
+	// override it on the next open.
+	shell()?.openWindow?.( BUILDER, { source: 'dock', params: { tab: value } } );
+	activate( value );
 }
 
 /**
@@ -59,13 +91,13 @@ export function submenuFor( runtime: RuntimeConfig | undefined ): SubmenuRow[] {
 	// would open the content model — the tile would not do what its own name
 	// says. Putting the builder at the top makes the head and the first row
 	// agree, which is the pattern the shell is built around.
-	rows.push( { title: 'Field groups', url: '', onSelect: () => open( BUILDER ), windowId: BUILDER } );
+	rows.push( { title: 'Field groups', url: '', onSelect: () => open( TAB_MAIN ), windowId: BUILDER } );
 
-	rows.push( { title: 'Content model', url: '', onSelect: () => open( MODEL ), windowId: MODEL } );
+	rows.push( { title: 'Content model', url: '', onSelect: () => open( TAB_MODEL ), windowId: BUILDER } );
 
-	rows.push( { title: 'Bulk editor', url: '', onSelect: () => open( BULK ), windowId: BULK } );
+	rows.push( { title: 'Bulk editor', url: '', onSelect: () => open( TAB_BULK ), windowId: BUILDER } );
 
-	rows.push( { title: 'Import, export and sync', url: '', onSelect: () => open( TOOLS ), windowId: TOOLS } );
+	rows.push( { title: 'Import, export and sync', url: '', onSelect: () => open( TAB_TOOLS ), windowId: BUILDER } );
 
 	// Creating a post type is the step *before* everything above it, and it was
 	// reachable only from a panel inside one window. Somebody who has just
@@ -75,7 +107,7 @@ export function submenuFor( runtime: RuntimeConfig | undefined ): SubmenuRow[] {
 		title: 'New custom post type…',
 		url: '',
 		onSelect: () => {
-			open( MODEL );
+			open( TAB_MODEL );
 
 			// The model window may be opening for the first time, so this cannot
 			// simply call into it. The window listens for the flag on its own
@@ -89,7 +121,7 @@ export function submenuFor( runtime: RuntimeConfig | undefined ): SubmenuRow[] {
 
 			shell()?.broadcast?.( 'os.allterrain-fields.new-content-type', {} );
 		},
-		windowId: MODEL,
+		windowId: BUILDER,
 	} );
 
 	return rows;
@@ -134,14 +166,8 @@ function registerTile(): void {
 			// The flyout is a hover gesture and never fans out for keyboard or
 			// touch, so the tile's own activation has to go somewhere useful:
 			// the builder, which is what the tile is named after.
-			onOpen: () => open( BUILDER ),
-			isOpen: () =>
-				Boolean(
-					os.windowManager?.getById?.( BUILDER ) ||
-						os.windowManager?.getById?.( MODEL ) ||
-						os.windowManager?.getById?.( BULK ) ||
-						os.windowManager?.getById?.( TOOLS )
-				),
+			onOpen: () => open( TAB_MAIN ),
+			isOpen: () => Boolean( os.windowManager?.getById?.( BUILDER ) ),
 			submenu,
 		} );
 	} catch {
@@ -173,28 +199,31 @@ function registerUrlRemaps(): void {
 	}
 
 	const pages: Array< [ string, string ] > = [
-		[ 'allterrain-fields', BUILDER ],
-		[ 'allterrain-fields-model', MODEL ],
-		[ 'allterrain-fields-bulk', BULK ],
-		[ 'allterrain-fields-tools', TOOLS ],
+		[ 'allterrain-fields', TAB_MAIN ],
+		[ 'allterrain-fields-model', TAB_MODEL ],
+		[ 'allterrain-fields-bulk', TAB_BULK ],
+		[ 'allterrain-fields-tools', TAB_TOOLS ],
 	];
 
-	pages.forEach( ( [ page, windowId ] ) => {
+	pages.forEach( ( [ page, tab ] ) => {
 		const entry: NativeUrlRemap = {
 			id: `allterrain-fields/${ page }`,
-			nativeWindowId: windowId,
+			nativeWindowId: BUILDER,
 			matches: ( _url, parsed ) =>
 				parsed.pathname.endsWith( '/admin.php' ) && parsed.searchParams.get( 'page' ) === page,
 		};
 
-		// The builder also carries which group to open, so a link from the
-		// Content Model lands on the right one — and, because params persist
-		// with the session, the window comes back on the same group after a
-		// reload rather than on whichever is first.
-		if ( windowId === BUILDER ) {
+		// Every page carries which tab it means, and the builder also carries
+		// which group to open, so a link from the Content Model lands on the
+		// right one — and, because params persist with the session, the window
+		// comes back the same way after a reload.
+		if ( tab === TAB_MAIN ) {
 			entry.params = ( _url, parsed ) => ( {
+				tab,
 				group: Number( parsed.searchParams.get( 'group' ) ) || 0,
 			} );
+		} else {
+			entry.params = () => ( { tab } );
 		}
 
 		try {
