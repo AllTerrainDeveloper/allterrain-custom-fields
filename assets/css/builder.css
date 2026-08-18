@@ -1197,20 +1197,27 @@
 
 /* Tools --------------------------------------------------------------------- */
 
-.atcft__body {
-	flex: 1 1 auto;
+/* The scroll lives on the root, not the body: the body is a multicol element,
+   and a multicol box with a bounded block size answers overflow by minting
+   extra columns sideways instead of scrolling. With the body free to grow,
+   the columns balance to the content and the root scrolls vertically. */
+.atcft {
 	overflow-y: auto;
+}
+
+.atcft__body {
+	flex: 0 0 auto;
 	padding: 20px;
-	display: grid;
-	gap: 16px;
-	grid-template-columns: repeat( auto-fit, minmax( 300px, 1fr ) );
-	align-items: start;
+	columns: 300px;
+	column-gap: 16px;
 }
 
 .atcft__pane {
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
+	break-inside: avoid;
+	margin-block-end: 16px;
 	border: 1px solid var( --atcfb-border );
 	border-radius: var( --atcfb-radius );
 	background: var( --atcfb-bg-subtle );
