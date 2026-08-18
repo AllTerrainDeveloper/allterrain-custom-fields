@@ -1,4 +1,4 @@
-(function() {
+var allTerrainFieldsModel = function(exports) {
   "use strict";
   function shell() {
     return window.wp?.os ?? null;
@@ -761,14 +761,33 @@
     return `${one}s`;
   }
   class Model {
-    constructor(root) {
+    constructor(root, focus = 0) {
       this.data = null;
       this.positions = {};
       this.selected = null;
       this.canvas = null;
       this.svg = null;
       this.showAll = false;
+      this.focus = 0;
       this.root = root;
+      this.focus = focus;
+    }
+    /**
+     * Retargets the window onto another group.
+     *
+     * Called when the already-open window is asked for again with different
+     * params — the shell focuses rather than re-renders, so the repaint is
+     * this class's job. `0` clears the focus.
+     *
+     * @param focus Group id, or 0 for everything.
+     */
+    setFocus(focus) {
+      if (focus === this.focus) {
+        return;
+      }
+      this.focus = focus;
+      this.drawBar();
+      this.drawGraph();
     }
     /** Loads the model and paints it. */
     async start() {
@@ -809,6 +828,7 @@
         return;
       }
       clear(bar);
+      const focused = this.focus ? this.data?.groups.find((one) => one.id === this.focus) : void 0;
       const total = this.data?.nodes.length ?? 0;
       const shown = this.visibleNodes().length;
       const hidden = total - shown;
@@ -823,7 +843,12 @@
         }),
         el("p", {
           class: "atcfm__hint",
-          text: this.showAll ? "Every type registered on this site. Drag a node to move it; drag its ⊕ handle onto another to join them." : "The types that have custom fields or a relationship. Drag a node to move it; drag its ⊕ handle onto another to join them."
+          text: (() => {
+            if (focused) {
+              return `Where “${focused.title}” appears — the types that carry it, and what its fields point at.`;
+            }
+            return this.showAll ? "Every type registered on this site. Drag a node to move it; drag its ⊕ handle onto another to join them." : "The types that have custom fields or a relationship. Drag a node to move it; drag its ⊕ handle onto another to join them.";
+          })()
         }),
         // The primary action of this window, in its toolbar, where a primary
         // action belongs. It was buried in step 1 of a side panel — correct
@@ -834,7 +859,18 @@
         }),
         button("Tidy up", { on: { click: () => this.autoLayout() } })
       );
-      if (hidden > 0 || this.showAll) {
+      if (focused) {
+        bar.insertBefore(
+          button("Show the whole model", {
+            class: "atcfm__toggle",
+            on: {
+              click: () => this.setFocus(0)
+            }
+          }),
+          bar.lastElementChild
+        );
+      }
+      if (!focused && (hidden > 0 || this.showAll)) {
         bar.insertBefore(
           button(this.showAll ? "Only what I’ve built" : `Show all ${total}`, {
             class: "atcfm__toggle",
@@ -863,6 +899,12 @@
     visibleNodes() {
       if (!this.data) {
         return [];
+      }
+      if (this.focus) {
+        const tied = nodesTiedToGroup(this.data, this.focus);
+        if (tied.length) {
+          return tied;
+        }
       }
       if (this.showAll) {
         return this.data.nodes;
@@ -1941,6 +1983,22 @@
       return Math.max(most, height);
     }, 0);
   }
+  function nodesTiedToGroup(data, group) {
+    const tied = /* @__PURE__ */ new Set();
+    data.nodes.forEach((node) => {
+      if (node.groups.some((one) => one.id === group)) {
+        tied.add(node.id);
+      }
+    });
+    data.edges.forEach((edge) => {
+      if (edge.group_id !== group) {
+        return;
+      }
+      edge.from.forEach((one) => tied.add(one));
+      (edge.kind === "user" ? ["user"] : edge.to).forEach((one) => tied.add(one));
+    });
+    return data.nodes.filter((node) => tied.has(node.id));
+  }
   function openBuilder(id) {
     const os = window.wp?.os;
     if (os?.openWindow) {
@@ -1966,14 +2024,18 @@
     } catch {
     }
   }
-  function mount(body) {
+  function mount(body, focus = 0) {
     const root = body.querySelector("[data-atcfm-root]") ?? body;
     if (root.dataset.atcfmMounted === "1") {
-      return;
+      return null;
     }
     root.dataset.atcfmMounted = "1";
-    void new Model(root).start();
+    const model = new Model(root, focus);
+    void model.start();
+    return model;
   }
+  const MODEL_WINDOW = "allterrain-fields-model";
+  let standalone = null;
   const globals = window;
   globals.openStationNativeWindows = globals.openStationNativeWindows ?? {};
   {
@@ -1986,6 +2048,13 @@
       }
     };
   }
+  globals.openStationNativeWindows[MODEL_WINDOW] = (body) => {
+    const focus = Number(shell()?.getWindowParams?.(MODEL_WINDOW)?.group) || 0;
+    const model = mount(body, focus);
+    if (model) {
+      standalone = model;
+    }
+  };
   if (typeof document !== "undefined") {
     whenShellReady(() => {
       document.querySelectorAll("[data-atcfm-root]").forEach((root) => {
@@ -1994,5 +2063,14 @@
         }
       });
     });
+    document.addEventListener("os-window-reopened", (event) => {
+      if (event.detail?.baseId !== MODEL_WINDOW) {
+        return;
+      }
+      standalone?.setFocus(Number(shell()?.getWindowParams?.(MODEL_WINDOW)?.group) || 0);
+    });
   }
-})();
+  exports.nodesTiedToGroup = nodesTiedToGroup;
+  Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
+  return exports;
+}({});

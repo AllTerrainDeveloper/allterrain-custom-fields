@@ -117,8 +117,37 @@ class Model {
 	 */
 	private showAll = false;
 
-	public constructor( root: HTMLElement ) {
+	/**
+	 * Show only where one field group appears.
+	 *
+	 * Set when the window was opened from a builder window's Related menu —
+	 * "the content model, for THIS group" — and cleared by the bar's own
+	 * button. `0` means the whole model.
+	 */
+	private focus = 0;
+
+	public constructor( root: HTMLElement, focus = 0 ) {
 		this.root = root;
+		this.focus = focus;
+	}
+
+	/**
+	 * Retargets the window onto another group.
+	 *
+	 * Called when the already-open window is asked for again with different
+	 * params — the shell focuses rather than re-renders, so the repaint is
+	 * this class's job. `0` clears the focus.
+	 *
+	 * @param focus Group id, or 0 for everything.
+	 */
+	public setFocus( focus: number ): void {
+		if ( focus === this.focus ) {
+			return;
+		}
+
+		this.focus = focus;
+		this.drawBar();
+		this.drawGraph();
 	}
 
 	/** Loads the model and paints it. */
@@ -181,6 +210,7 @@ class Model {
 
 		clear( bar );
 
+		const focused = this.focus ? this.data?.groups.find( ( one ) => one.id === this.focus ) : undefined;
 		const total = this.data?.nodes.length ?? 0;
 		const shown = this.visibleNodes().length;
 		const hidden = total - shown;
@@ -196,9 +226,15 @@ class Model {
 			} ),
 			el( 'p', {
 				class: 'atcfm__hint',
-				text: this.showAll
-					? 'Every type registered on this site. Drag a node to move it; drag its ⊕ handle onto another to join them.'
-					: 'The types that have custom fields or a relationship. Drag a node to move it; drag its ⊕ handle onto another to join them.',
+				text: ( () => {
+					if ( focused ) {
+						return `Where “${ focused.title }” appears — the types that carry it, and what its fields point at.`;
+					}
+
+					return this.showAll
+						? 'Every type registered on this site. Drag a node to move it; drag its ⊕ handle onto another to join them.'
+						: 'The types that have custom fields or a relationship. Drag a node to move it; drag its ⊕ handle onto another to join them.';
+				} )(),
 			} ),
 			// The primary action of this window, in its toolbar, where a primary
 			// action belongs. It was buried in step 1 of a side panel — correct
@@ -210,7 +246,19 @@ class Model {
 			button( 'Tidy up', { on: { click: () => this.autoLayout() } } )
 		);
 
-		if ( hidden > 0 || this.showAll ) {
+		if ( focused ) {
+			bar.insertBefore(
+				button( 'Show the whole model', {
+					class: 'atcfm__toggle',
+					on: {
+						click: () => this.setFocus( 0 ),
+					},
+				} ),
+				bar.lastElementChild
+			);
+		}
+
+		if ( ! focused && ( hidden > 0 || this.showAll ) ) {
 			bar.insertBefore(
 				button( this.showAll ? 'Only what I’ve built' : `Show all ${ total }`, {
 					class: 'atcfm__toggle',
@@ -240,6 +288,16 @@ class Model {
 	private visibleNodes(): ModelNode[] {
 		if ( ! this.data ) {
 			return [];
+		}
+
+		// Focus wins over the show-all toggle: a window opened to answer
+		// "where does this group appear" must not answer something else.
+		if ( this.focus ) {
+			const tied = nodesTiedToGroup( this.data, this.focus );
+
+			if ( tied.length ) {
+				return tied;
+			}
 		}
 
 		if ( this.showAll ) {
@@ -1660,6 +1718,38 @@ function columnsHeight( columns: string[][], box: Record< string, { w: number; h
 	}, 0 );
 }
 
+/**
+ * The nodes a field group touches: the types that carry it, and — through its
+ * relational fields — the types those fields point at.
+ *
+ * Exported for its tests; the class calls it through `visibleNodes()`.
+ *
+ * @param data  The content model.
+ * @param group Group id.
+ * @return The tied nodes, in the model's own order.
+ */
+export function nodesTiedToGroup( data: ContentModel, group: number ): ModelNode[] {
+	const tied = new Set< string >();
+
+	data.nodes.forEach( ( node ) => {
+		if ( node.groups.some( ( one ) => one.id === group ) ) {
+			tied.add( node.id );
+		}
+	} );
+
+	data.edges.forEach( ( edge ) => {
+		if ( edge.group_id !== group ) {
+			return;
+		}
+
+		edge.from.forEach( ( one ) => tied.add( one ) );
+
+		( edge.kind === 'user' ? [ 'user' ] : edge.to ).forEach( ( one ) => tied.add( one ) );
+	} );
+
+	return data.nodes.filter( ( node ) => tied.has( node.id ) );
+}
+
 function openBuilder( id: number ): void {
 	void confirm;
 
@@ -1713,17 +1803,33 @@ function writeLayout( positions: Record< string, Point > ): void {
 /* Mounting                                                                    */
 /* -------------------------------------------------------------------------- */
 
-function mount( body: HTMLElement ): void {
+function mount( body: HTMLElement, focus = 0 ): Model | null {
 	const root = body.querySelector< HTMLElement >( '[data-atcfm-root]' ) ?? body;
 
 	if ( root.dataset.atcfmMounted === '1' ) {
-		return;
+		return null;
 	}
 
 	root.dataset.atcfmMounted = '1';
 
-	void new Model( root ).start();
+	const model = new Model( root, focus );
+
+	void model.start();
+
+	return model;
 }
+
+/** The standalone Content Model window's id — also its admin page slug. */
+const MODEL_WINDOW = 'allterrain-fields-model';
+
+/**
+ * The most recent standalone window's instance, for retargeting.
+ *
+ * The Related menu focuses the existing window rather than re-rendering it, so
+ * a second "content model for THIS group" click only changes the params — the
+ * `os-window-reopened` listener below is what turns that into a repaint.
+ */
+let standalone: Model | null = null;
 
 const globals = window as unknown as {
 	openStationNativeWindows?: Record< string, ( body: HTMLElement ) => void >;
@@ -1746,6 +1852,17 @@ globals.openStationNativeWindows = globals.openStationNativeWindows ?? {};
 	};
 }
 
+// The standalone Content Model window — what a builder window's Related menu
+// opens, focused on the group being edited (`params.group`).
+globals.openStationNativeWindows[ MODEL_WINDOW ] = ( body: HTMLElement ) => {
+	const focus = Number( shell()?.getWindowParams?.( MODEL_WINDOW )?.group ) || 0;
+	const model = mount( body, focus );
+
+	if ( model ) {
+		standalone = model;
+	}
+};
+
 if ( typeof document !== 'undefined' ) {
 	whenShellReady( () => {
 		document.querySelectorAll< HTMLElement >( '[data-atcfm-root]' ).forEach( ( root ) => {
@@ -1753,5 +1870,16 @@ if ( typeof document !== 'undefined' ) {
 				mount( root );
 			}
 		} );
+	} );
+
+	// A retarget — the Related menu asked for the window that is already open,
+	// with a different group in its params. The shell updates the params before
+	// this fires; the repaint is ours.
+	document.addEventListener( 'os-window-reopened', ( event ) => {
+		if ( ( event as CustomEvent< { baseId?: string } > ).detail?.baseId !== MODEL_WINDOW ) {
+			return;
+		}
+
+		standalone?.setFocus( Number( shell()?.getWindowParams?.( MODEL_WINDOW )?.group ) || 0 );
 	} );
 }

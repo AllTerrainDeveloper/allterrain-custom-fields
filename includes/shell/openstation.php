@@ -238,6 +238,11 @@ function atcf_register_shell_surfaces() {
 	// the shell swaps in place, exactly like the submenu tabs an admin-page
 	// window wears. A second window for side-by-side work is still one
 	// `openNewWindow()` away.
+	//
+	// The Content Model is ALSO a window of its own — the one surface with a
+	// side-by-side job: a builder window's Related menu opens it beside the
+	// builder, focused on the group being edited (`params.group`). The tab
+	// answers in-window navigation; this answers "show me, next to my work".
 	$windows = array(
 		ATCF_WINDOW_BUILDER => array(
 			'title'          => __( 'AllTerrain Custom Fields', 'allterrain-fields' ),
@@ -250,6 +255,17 @@ function atcf_register_shell_surfaces() {
 			'height'         => 860,
 			'min_width'      => 780,
 			'min_height'     => 520,
+		),
+		ATCF_WINDOW_MODEL   => array(
+			'title'      => __( 'Content Model', 'allterrain-fields' ),
+			'icon'       => 'dashicons-networking',
+			'template'   => 'atcf_model_template',
+			'script'     => 'allterrain-fields-model',
+			'style'      => 'allterrain-fields-model',
+			'width'      => 1240,
+			'height'     => 820,
+			'min_width'  => 680,
+			'min_height' => 480,
 		),
 	);
 

@@ -395,6 +395,14 @@ export interface ContentRef {
 		id: string;
 		label: string;
 		url: string;
+		/**
+		 * A native window to open instead of the URL. The shell prefers it when
+		 * something is registered under the id and falls back to `url` when the
+		 * window's plugin is gone — so items carry both.
+		 */
+		windowId?: string;
+		/** Travels to the window as its params when `windowId` wins. */
+		params?: Record< string, string | number | boolean >;
 		group?: string;
 		groupLabel?: string;
 		icon?: string;

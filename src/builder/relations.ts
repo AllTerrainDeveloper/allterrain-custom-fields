@@ -186,7 +186,7 @@ export function groupIdentity(
 	group: { id: number; key: string; title: string; types: string[] },
 	adminUrl: string
 ): ContentRef {
-	const related = group.types
+	const related: NonNullable< ContentRef[ 'related' ] > = group.types
 		.filter( ( type ) => type !== '*' )
 		.slice( 0, 12 )
 		.map( ( type ) => ( {
@@ -202,6 +202,12 @@ export function groupIdentity(
 		id: 'allterrain-fields/model',
 		label: 'The content model',
 		url: `${ adminUrl }admin.php?page=allterrain-fields-model`,
+		// The window, not the URL: the standalone Content Model opens as its
+		// own window beside the builder, focused on this group — `params.group`
+		// is the filter its render callback reads. The URL stays as the
+		// fallback for a shell old enough to not read `windowId`.
+		windowId: 'allterrain-fields-model',
+		params: { group: group.id || 0 },
 		group: 'allterrain-fields',
 		groupLabel: 'Fields',
 		icon: 'dashicons-networking',
