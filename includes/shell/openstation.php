@@ -342,7 +342,7 @@ function atcf_register_shell_icon() {
 		'register_icon',
 		'allterrain-fields',
 		array(
-			'title'        => __( 'Fields', 'allterrain-fields' ),
+			'title'        => __( 'AllTerrain Custom Fields', 'allterrain-fields' ),
 			'icon'         => 'dashicons-index-card',
 			'window'       => ATCF_WINDOW_BUILDER,
 			'position'     => 34,

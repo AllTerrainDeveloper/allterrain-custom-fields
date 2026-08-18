@@ -22,8 +22,9 @@
  *   containers are not offered as columns rather than being offered and broken.
  */
 
-import { button, clear, componentsReady, debounce, el, select, uid } from './ui';
-import { notify, shellIsActive, whenShellReady } from './shell';
+import { button, clear, componentsReady, debounce, el, icon, select, uid } from './ui';
+import { notify, shell, shellIsActive, whenShellReady } from './shell';
+import { mountWindowTabs } from './window-tabs';
 import * as api from './api';
 import { normalizeChoices } from './controls/render';
 
@@ -80,7 +81,25 @@ class Bulk {
 		if ( ! this.groupId ) {
 			this.dismissLoader();
 			clear( this.root );
-			this.root.append( el( 'p', { class: 'atcfk__empty', text: 'There are no field groups to edit yet.' } ) );
+			this.root.append(
+				el( 'div', {
+					class: 'atcfk__empty',
+					children: [
+						icon( 'dashicons-editor-table', { class: 'atcfk__empty-icon', attrs: { size: '48' } } ),
+						el( 'h2', { text: api.t( 'bulkEmptyTitle', 'Nothing to edit in bulk yet' ) } ),
+						el( 'p', {
+							text: api.t(
+								'bulkEmptyBody',
+								'The bulk editor works across every post a field group covers. Create a field group and its posts appear here as rows.'
+							),
+						} ),
+						button( api.t( 'bulkEmptyAction', 'Open Field Groups' ), {
+							variant: 'primary',
+							on: { click: () => openBuilder() },
+						} ),
+					],
+				} )
+			);
 
 			return;
 		}
@@ -492,6 +511,20 @@ function summarise( value: unknown ): string {
 /* Mounting                                                                    */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * Opens the Field Groups surface, however this page can reach it.
+ *
+ * Inside the shell that is the builder window; on the plain admin page it is
+ * the builder page itself.
+ */
+function openBuilder(): void {
+	if ( shellIsActive() && shell()?.openWindow?.( 'allterrain-fields' ) ) {
+		return;
+	}
+
+	window.location.href = api.config().adminUrl + 'admin.php?page=allterrain-fields';
+}
+
 function mount( body: HTMLElement ): void {
 	const root = body.querySelector< HTMLElement >( '[data-atcfk-body]' ) ?? body;
 
@@ -502,6 +535,7 @@ function mount( body: HTMLElement ): void {
 	root.dataset.atcfkMounted = '1';
 
 	void new Bulk( root ).start();
+	mountWindowTabs( 'allterrain-fields-bulk', body );
 }
 
 const globals = window as unknown as {

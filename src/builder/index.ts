@@ -29,6 +29,7 @@ import '../controls/misc';
 
 import { button, clear, componentsReady, el, icon, select, textField, toggle, uid } from '../ui';
 import { confirm, notify, shell, shellIsActive, whenShellReady, windowIdOf } from '../shell';
+import { mountWindowTabs } from '../window-tabs';
 import * as api from '../api';
 import { registerCanvasTarget, renderCanvas } from './canvas';
 import { renderInspector, syncInspector } from './inspector';
@@ -1502,6 +1503,8 @@ function mount( body: HTMLElement ): void {
 	mounted.push( builder );
 
 	void builder.start();
+
+	mountWindowTabs( 'allterrain-fields', body );
 }
 
 /**

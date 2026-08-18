@@ -273,7 +273,9 @@ export interface ButtonOptions extends ElementOptions {
 /** An icon, as `<os-icon>` or a `<span class="dashicons">`. */
 export function icon( slug: string, opts: ElementOptions = {} ): HTMLElement {
 	if ( hasComponent( 'os-icon' ) ) {
-		return el( 'os-icon', { ...opts, attrs: { icon: slug, ...( opts.attrs ?? {} ) } } );
+		// The component's attribute is `name`, and it tolerates the full
+		// `dashicons-foo` slug as well as the bare suffix.
+		return el( 'os-icon', { ...opts, attrs: { name: slug, ...( opts.attrs ?? {} ) } } );
 	}
 
 	return el( 'span', {

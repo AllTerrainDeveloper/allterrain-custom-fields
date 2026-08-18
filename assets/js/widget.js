@@ -173,7 +173,7 @@
   }
   function icon(slug, opts = {}) {
     if (hasComponent("os-icon")) {
-      return el("os-icon", { ...opts, attrs: { icon: slug, ...opts.attrs ?? {} } });
+      return el("os-icon", { ...opts, attrs: { name: slug, ...opts.attrs ?? {} } });
     }
     return el("span", {
       ...opts,

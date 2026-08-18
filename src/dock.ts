@@ -127,7 +127,7 @@ function registerTile(): void {
 	try {
 		os.registerSystemTile( {
 			id: 'allterrain-fields',
-			title: 'Fields',
+			title: 'AllTerrain Custom Fields',
 			icon: 'dashicons-index-card',
 			// Ahead of the shell's own trailing cluster, which starts at 10.
 			order: 6,

@@ -30,6 +30,7 @@
 
 import { button, clear, componentsReady, el, icon, select, textField, toggle, uid } from '../ui';
 import { confirm, notify, shell, shellIsActive, whenShellReady } from '../shell';
+import { mountWindowTabs } from '../window-tabs';
 import { buildPayload, dragManager, startDrag } from '../dnd';
 import * as api from '../api';
 import { NEW_TYPE_FLAG } from '../flags';
@@ -1723,6 +1724,7 @@ function mount( body: HTMLElement ): void {
 	root.dataset.atcfmMounted = '1';
 
 	void new Model( root ).start();
+	mountWindowTabs( 'allterrain-fields-model', body );
 }
 
 const globals = window as unknown as {

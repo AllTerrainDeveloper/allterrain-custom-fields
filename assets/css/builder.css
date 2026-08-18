@@ -1089,6 +1089,44 @@
 	flex-direction: column;
 }
 
+/* The bulk editor with nothing to edit: an explanation, not a shrug. */
+.atcfk__empty {
+	flex: 1 1 auto;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	padding: 48px 24px;
+	text-align: center;
+}
+
+.atcfk__empty-icon {
+	inline-size: 48px;
+	block-size: 48px;
+	font-size: 48px;
+	line-height: 1;
+	color: var( --atcfb-fg-muted );
+	opacity: 0.45;
+}
+
+.atcfk__empty h2 {
+	margin: 0;
+	font-size: 15px;
+	font-weight: 600;
+}
+
+.atcfk__empty p {
+	margin: 0;
+	max-inline-size: 44ch;
+	color: var( --atcfb-fg-muted );
+}
+
+.atcfk__empty button,
+.atcfk__empty os-button {
+	margin-block-start: 10px;
+}
+
 .atcfk__control {
 	display: flex;
 	align-items: center;

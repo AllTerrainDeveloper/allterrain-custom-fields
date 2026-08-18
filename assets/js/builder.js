@@ -263,7 +263,7 @@ var allTerrainFieldsBuilder = function(exports) {
   }
   function icon(slug2, opts = {}) {
     if (hasComponent("os-icon")) {
-      return el("os-icon", { ...opts, attrs: { icon: slug2, ...opts.attrs ?? {} } });
+      return el("os-icon", { ...opts, attrs: { name: slug2, ...opts.attrs ?? {} } });
     }
     return el("span", {
       ...opts,
@@ -3028,6 +3028,35 @@ var allTerrainFieldsBuilder = function(exports) {
       scope.removeEventListener("change", recompute);
     };
   });
+  function family() {
+    return [
+      { value: "allterrain-fields", label: t("windowGroups", "Field Groups") },
+      { value: "allterrain-fields-model", label: t("windowModel", "Content Model") },
+      { value: "allterrain-fields-bulk", label: t("windowBulk", "Bulk Editor") },
+      { value: "allterrain-fields-tools", label: t("windowTools", "Field Tools") }
+    ];
+  }
+  function mountWindowTabs(selfId, body) {
+    const os = shell();
+    const winEl = body.closest(".os-window");
+    if (!os || !winEl) {
+      return;
+    }
+    const instanceId = winEl.id.startsWith("wp-window-") ? winEl.id.slice("wp-window-".length) : selfId;
+    const win = os.windowManager?.getById?.(instanceId) ?? os.windowManager?.getById?.(selfId);
+    if (!win?.setTabs) {
+      return;
+    }
+    win.setTabs(family(), selfId);
+    winEl.addEventListener("os-window-tab-change", (event) => {
+      const value = event.detail?.value;
+      if (!value || value === selfId) {
+        return;
+      }
+      win.activateTab?.(selfId);
+      os.openWindow?.(value);
+    });
+  }
   const SHAPES = {
     // Things you type into.
     text: "text",
@@ -7200,6 +7229,7 @@ var allTerrainFieldsBuilder = function(exports) {
     const builder = new Builder(root);
     mounted.push(builder);
     void builder.start();
+    mountWindowTabs("allterrain-fields", body);
   }
   const globals = window;
   globals.openStationNativeWindows = globals.openStationNativeWindows ?? {};

@@ -200,6 +200,16 @@ var allTerrainFieldsBulk = function(exports) {
     }
     return node;
   }
+  function icon(slug, opts = {}) {
+    if (hasComponent("os-icon")) {
+      return el("os-icon", { ...opts, attrs: { name: slug, ...opts.attrs ?? {} } });
+    }
+    return el("span", {
+      ...opts,
+      class: `dashicons ${slug} ${opts.class ?? ""}`.trim(),
+      attrs: { "aria-hidden": "true", ...opts.attrs ?? {} }
+    });
+  }
   function onChangeOf(node, names, read, handle) {
     let last = read();
     const fire = (event) => {
@@ -278,6 +288,10 @@ var allTerrainFieldsBulk = function(exports) {
       shell: { active: false, chromeless: false }
     };
   }
+  function t(key, fallback) {
+    const strings = window.allTerrainFieldsL10n;
+    return strings?.[key] ?? config().i18n?.[key] ?? fallback;
+  }
   class ApiError extends Error {
     constructor(message, status, code) {
       super(message);
@@ -320,6 +334,35 @@ var allTerrainFieldsBulk = function(exports) {
   }
   function writeValues(writes) {
     return request("values", { method: "POST", body: JSON.stringify({ writes }) }, "field-values-save");
+  }
+  function family() {
+    return [
+      { value: "allterrain-fields", label: t("windowGroups", "Field Groups") },
+      { value: "allterrain-fields-model", label: t("windowModel", "Content Model") },
+      { value: "allterrain-fields-bulk", label: t("windowBulk", "Bulk Editor") },
+      { value: "allterrain-fields-tools", label: t("windowTools", "Field Tools") }
+    ];
+  }
+  function mountWindowTabs(selfId, body) {
+    const os = shell();
+    const winEl = body.closest(".os-window");
+    if (!os || !winEl) {
+      return;
+    }
+    const instanceId = winEl.id.startsWith("wp-window-") ? winEl.id.slice("wp-window-".length) : selfId;
+    const win = os.windowManager?.getById?.(instanceId) ?? os.windowManager?.getById?.(selfId);
+    if (!win?.setTabs) {
+      return;
+    }
+    win.setTabs(family(), selfId);
+    winEl.addEventListener("os-window-tab-change", (event) => {
+      const value = event.detail?.value;
+      if (!value || value === selfId) {
+        return;
+      }
+      win.activateTab?.(selfId);
+      os.openWindow?.(value);
+    });
   }
   function normalizeChoices(choices) {
     if (typeof choices === "string") {
@@ -377,7 +420,25 @@ var allTerrainFieldsBulk = function(exports) {
       if (!this.groupId) {
         this.dismissLoader();
         clear(this.root);
-        this.root.append(el("p", { class: "atcfk__empty", text: "There are no field groups to edit yet." }));
+        this.root.append(
+          el("div", {
+            class: "atcfk__empty",
+            children: [
+              icon("dashicons-editor-table", { class: "atcfk__empty-icon", attrs: { size: "48" } }),
+              el("h2", { text: t("bulkEmptyTitle", "Nothing to edit in bulk yet") }),
+              el("p", {
+                text: t(
+                  "bulkEmptyBody",
+                  "The bulk editor works across every post a field group covers. Create a field group and its posts appear here as rows."
+                )
+              }),
+              button(t("bulkEmptyAction", "Open Field Groups"), {
+                variant: "primary",
+                on: { click: () => openBuilder() }
+              })
+            ]
+          })
+        );
         return;
       }
       await this.load();
@@ -683,6 +744,12 @@ var allTerrainFieldsBulk = function(exports) {
     }
     return value === "" || value === null || value === void 0 ? "—" : String(value);
   }
+  function openBuilder() {
+    if (shellIsActive() && shell()?.openWindow?.("allterrain-fields")) {
+      return;
+    }
+    window.location.href = config().adminUrl + "admin.php?page=allterrain-fields";
+  }
   function mount(body) {
     const root = body.querySelector("[data-atcfk-body]") ?? body;
     if (root.dataset.atcfkMounted === "1") {
@@ -690,6 +757,7 @@ var allTerrainFieldsBulk = function(exports) {
     }
     root.dataset.atcfkMounted = "1";
     void new Bulk(root).start();
+    mountWindowTabs("allterrain-fields-bulk", body);
   }
   const globals = window;
   globals.openStationNativeWindows = globals.openStationNativeWindows ?? {};

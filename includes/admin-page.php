@@ -37,8 +37,8 @@ function atcf_register_admin_pages() {
 	}
 
 	add_menu_page(
-		__( 'Fields', 'allterrain-fields' ),
-		__( 'Fields', 'allterrain-fields' ),
+		__( 'AllTerrain Custom Fields', 'allterrain-fields' ),
+		__( 'AllTerrain Custom Fields', 'allterrain-fields' ),
 		ATCF_MANAGE_CAP,
 		'allterrain-fields',
 		'atcf_render_builder_page',

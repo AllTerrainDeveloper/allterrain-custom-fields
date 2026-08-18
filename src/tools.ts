@@ -19,6 +19,7 @@
 
 import { button, clear, componentsReady, el } from './ui';
 import { confirm, notify, shellIsActive, whenShellReady } from './shell';
+import { mountWindowTabs } from './window-tabs';
 import * as api from './api';
 import type { GroupSummary, JsonDiff } from './types';
 
@@ -668,6 +669,7 @@ function mount( body: HTMLElement ): void {
 	root.dataset.atcftMounted = '1';
 
 	void new Tools( root ).start();
+	mountWindowTabs( 'allterrain-fields-tools', body );
 }
 
 const globals = window as unknown as {

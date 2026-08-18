@@ -196,7 +196,7 @@ Four files, all gated behind `function_exists()` through `shell-api.php`:
 
 | File | What it does |
 |---|---|
-| `shell/openstation.php` | Registers four native windows, a wallpaper icon, a widget, four commands, and the drag payload constants |
+| `shell/openstation.php` | Registers four native windows, a wallpaper icon, a widget, four commands, and the drag payload constants. Every window wears a chrome tab strip listing all four surfaces (`src/window-tabs.ts`); a sibling tab opens that window rather than swapping panes, so surfaces can still sit side by side for cross-window drags |
 | `shell/identity.php` | Turns relationship values into the shell's content-identity links and Related-menu rows — the file that makes a relationship a line on the desktop |
 | `shell/preview.php` | The fifth window, behind the eye in the title bar |
 | `shell/explorer.php` | Puts field groups in one folder in WP Explorer, with useful excerpts |
